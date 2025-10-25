@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,10 +24,10 @@ import { useGetMeQuery } from "@/redux/api/userApi/useApi";
 interface AdminProfileFormValues {
   adminName: string;
   email: string;
-  phoneNumber: string;
-  businessAddress: string;
-  city: string;
-  zipCode: string;
+  phoneNumber?: string; // Optional
+  businessAddress?: string; // Optional
+  city?: string; // Optional
+  zipCode?: string; // Optional
   preferredContactMethod: string;
   contactEmail: string;
   inviteEmail: string;
@@ -36,23 +36,6 @@ interface AdminProfileFormValues {
   newPassword?: string;
   confirmPassword?: string;
 }
-
-// 🧩 Demo data for default values
-const DEMO_DATA: AdminProfileFormValues = {
-  adminName: "John Doe",
-  email: "john@example.com",
-  phoneNumber: "+1 (555) 123-4567",
-  businessAddress: "123 Business St, Suite 100, New York, NY 10001",
-  city: "New York",
-  zipCode: "10001",
-  preferredContactMethod: "email",
-  contactEmail: "john@example.com",
-  inviteEmail: "",
-  inviteRole: "admin",
-  currentPassword: "",
-  newPassword: "",
-  confirmPassword: "",
-};
 
 interface AdminProfileFormProps {
   onUpdateSuccess?: () => void;
@@ -67,29 +50,56 @@ export default function AdminProfileForm({
 
   const { data, error, isLoading } = useGetMeQuery({});
 
-  console.log("me", data?.data);
+  console.log("Fetched Data:", data?.data);
 
-  // ✅ Add type to useForm
+  // 🧩 Add type to useForm and set default values dynamically once data is available
   const {
     register,
     handleSubmit,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<AdminProfileFormValues>({
-    defaultValues: DEMO_DATA,
+    defaultValues: {
+      adminName: "",
+      email: "",
+      phoneNumber: "",
+      businessAddress: "",
+      city: "",
+      zipCode: "",
+      preferredContactMethod: "email",
+      contactEmail: "",
+      inviteEmail: "",
+      inviteRole: "admin",
+    },
   });
 
-  const watchedValues = watch();
+  // 🧩 Use effect to update the form with fetched data
+  useEffect(() => {
+    if (data?.data && data.data.length > 0) {
+      const userData = data.data[0]; // Get the first user (or adjust based on your data)
 
-  // ✅ Strongly typed onSubmit function
-  const onSubmit: SubmitHandler<AdminProfileFormValues> = async (data) => {
+      // Set form values using setValue from react-hook-form
+      setValue("adminName", userData.fullName || "");
+      setValue("email", userData.email || "");
+      setValue("phoneNumber", userData.phone || "");
+      setValue("businessAddress", userData.businessAddress || "");
+      setValue("city", userData.city || "");
+      setValue("zipCode", userData.zipCode || "");
+      setValue("preferredContactMethod", "email"); // You can modify this logic if needed
+      setValue("contactEmail", userData.email || "");
+      setValue("inviteEmail", "");
+      setValue("inviteRole", userData.role || "admin");
+    }
+  }, [data, setValue]);
+
+  // 🧩 Handle form submission
+  const onSubmit: SubmitHandler<AdminProfileFormValues> = async (formData) => {
     setLoading(true);
     try {
-      // Simulate API call
+      // Simulate API call to update the user info
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      console.log("Updated data:", data);
+      console.log("Updated data:", formData);
       onUpdateSuccess?.();
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -224,93 +234,6 @@ export default function AdminProfileForm({
                 )}
               </div>
 
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                {isLoading ? "Saving..." : "Save Changes"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Invite Admin Section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Invite Admin</CardTitle>
-              <CardDescription>Invite a new admin to your team</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Invite Email */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="inviteEmail"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Enter Email
-                </label>
-                <Input
-                  id="inviteEmail"
-                  type="email"
-                  placeholder="admin@example.com"
-                  {...register("inviteEmail", {
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
-                    },
-                  })}
-                />
-                {errors.inviteEmail && (
-                  <p className="text-sm text-red-600">
-                    {errors.inviteEmail.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Assign Role */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="inviteRole"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Assign Role
-                </label>
-                <Select
-                  defaultValue={DEMO_DATA.inviteRole}
-                  onValueChange={(value) => setValue("inviteRole", value)}
-                >
-                  <SelectTrigger id="inviteRole">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="moderator">Moderator</SelectItem>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                {isLoading ? "Inviting..." : "Invite Now"}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right Column: Contact Info + Change Password */}
-        <div className="space-y-6">
-          {/* Contact Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
-              <CardDescription>Manage your contact details</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
               {/* Business Address */}
               <div className="space-y-2">
                 <label
@@ -321,7 +244,7 @@ export default function AdminProfileForm({
                 </label>
                 <Input
                   id="businessAddress"
-                  placeholder="123 Business St, Suite 100, New York, NY 10001"
+                  placeholder="Enter business address"
                   {...register("businessAddress", {
                     required: "Business address is required",
                   })}
@@ -333,100 +256,44 @@ export default function AdminProfileForm({
                 )}
               </div>
 
-              {/* City + Zip */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="city"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    City
-                  </label>
-                  <Input
-                    id="city"
-                    placeholder="New York"
-                    {...register("city", { required: "City is required" })}
-                  />
-                  {errors.city && (
-                    <p className="text-sm text-red-600">
-                      {errors.city.message}
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="zipCode"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Zip Code
-                  </label>
-                  <Input
-                    id="zipCode"
-                    placeholder="10001"
-                    {...register("zipCode", {
-                      required: "Zip code is required",
-                    })}
-                  />
-                  {errors.zipCode && (
-                    <p className="text-sm text-red-600">
-                      {errors.zipCode.message}
-                    </p>
-                  )}
-                </div>
+              {/* City */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="city"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  City
+                </label>
+                <Input
+                  id="city"
+                  placeholder="Enter city"
+                  {...register("city", {
+                    required: "City is required",
+                  })}
+                />
+                {errors.city && (
+                  <p className="text-sm text-red-600">{errors.city.message}</p>
+                )}
               </div>
 
-              {/* Contact Method */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="preferredContactMethod"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Preferred Contact Method
-                  </label>
-                  <Select
-                    defaultValue={DEMO_DATA.preferredContactMethod}
-                    onValueChange={(value) =>
-                      setValue("preferredContactMethod", value)
-                    }
-                  >
-                    <SelectTrigger id="preferredContactMethod">
-                      <SelectValue placeholder="Select contact method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="phone">Phone</SelectItem>
-                      <SelectItem value="sms">SMS</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="contactEmail"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Email Address
-                  </label>
-                  <Input
-                    id="contactEmail"
-                    type="email"
-                    placeholder="john@example.com"
-                    {...register("contactEmail", {
-                      required: "Contact email is required",
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address",
-                      },
-                    })}
-                  />
-                  {errors.contactEmail && (
-                    <p className="text-sm text-red-600">
-                      {errors.contactEmail.message}
-                    </p>
-                  )}
-                </div>
+              {/* Zip Code */}
+              <div className="space-y-2">
+                <label
+                  htmlFor="zipCode"
+                  className="block text-sm font-medium text-gray-700"
+                >
+                  Zip Code
+                </label>
+                <Input
+                  id="zipCode"
+                  placeholder="Enter zip code"
+                  {...register("zipCode", {
+                    required: "Zip code is required",
+                  })}
+                />
+                {errors.zipCode && (
+                  <p className="text-sm text-red-600">{errors.zipCode.message}</p>
+                )}
               </div>
 
               <Button
@@ -435,40 +302,6 @@ export default function AdminProfileForm({
                 className="w-full bg-green-600 hover:bg-green-700"
               >
                 {isLoading ? "Saving..." : "Save Changes"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Change Password */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Input
-                type="password"
-                placeholder="Current Password"
-                {...register("currentPassword")}
-              />
-              <Input
-                type="password"
-                placeholder="New Password"
-                {...register("newPassword")}
-              />
-              <Input
-                type="password"
-                placeholder="Confirm Password"
-                {...register("confirmPassword")}
-              />
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                {isLoading ? "Updating..." : "Change Password"}
               </Button>
             </CardContent>
           </Card>
