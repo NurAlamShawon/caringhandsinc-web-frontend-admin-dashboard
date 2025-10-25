@@ -1,6 +1,7 @@
 "use client"
 import { CandidateResumeCard } from "@/components/admin-dashboard/ViewCandidate-admin";
 const exampleCandidate = {
+  id:"5546sfe",
   name: "SAIFUR RAHMAN",
   title: "UI/UX Designer",
   phone: "+880 1255555555",
@@ -90,7 +91,7 @@ const exampleCandidate = {
 export default function ViewCandidateProfile() {
   return (
     <div>
-      <CandidateResumeCard {...exampleCandidate} />
+      <CandidateResumeCard {...exampleCandidate } />
     </div>
   );
 }

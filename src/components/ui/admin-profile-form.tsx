@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useGetMeQuery } from "@/redux/api/userApi/useApi";
 
 // 🧩 Define TypeScript interface for form fields
 interface AdminProfileFormValues {
@@ -60,9 +61,13 @@ interface AdminProfileFormProps {
 export default function AdminProfileForm({
   onUpdateSuccess,
 }: AdminProfileFormProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [Loading, setLoading] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [changePassword, setChangePassword] = useState(false);
+
+  const { data, error, isLoading } = useGetMeQuery({});
+
+  console.log("me", data?.data);
 
   // ✅ Add type to useForm
   const {
@@ -79,7 +84,7 @@ export default function AdminProfileForm({
 
   // ✅ Strongly typed onSubmit function
   const onSubmit: SubmitHandler<AdminProfileFormValues> = async (data) => {
-    setIsLoading(true);
+    setLoading(true);
     try {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -89,7 +94,7 @@ export default function AdminProfileForm({
     } catch (error) {
       console.error("Error updating profile:", error);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
@@ -161,7 +166,9 @@ export default function AdminProfileForm({
                 <Input
                   id="adminName"
                   placeholder="Enter admin name"
-                  {...register("adminName", { required: "Admin name is required" })}
+                  {...register("adminName", {
+                    required: "Admin name is required",
+                  })}
                 />
                 {errors.adminName && (
                   <p className="text-sm text-red-600">
@@ -329,7 +336,10 @@ export default function AdminProfileForm({
               {/* City + Zip */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="city"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     City
                   </label>
                   <Input
@@ -338,21 +348,30 @@ export default function AdminProfileForm({
                     {...register("city", { required: "City is required" })}
                   />
                   {errors.city && (
-                    <p className="text-sm text-red-600">{errors.city.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.city.message}
+                    </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="zipCode"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Zip Code
                   </label>
                   <Input
                     id="zipCode"
                     placeholder="10001"
-                    {...register("zipCode", { required: "Zip code is required" })}
+                    {...register("zipCode", {
+                      required: "Zip code is required",
+                    })}
                   />
                   {errors.zipCode && (
-                    <p className="text-sm text-red-600">{errors.zipCode.message}</p>
+                    <p className="text-sm text-red-600">
+                      {errors.zipCode.message}
+                    </p>
                   )}
                 </div>
               </div>
@@ -360,7 +379,10 @@ export default function AdminProfileForm({
               {/* Contact Method */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="preferredContactMethod" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="preferredContactMethod"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Preferred Contact Method
                   </label>
                   <Select
@@ -381,7 +403,10 @@ export default function AdminProfileForm({
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700">
+                  <label
+                    htmlFor="contactEmail"
+                    className="block text-sm font-medium text-gray-700"
+                  >
                     Email Address
                   </label>
                   <Input

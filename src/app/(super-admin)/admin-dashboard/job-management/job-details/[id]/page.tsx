@@ -3,17 +3,33 @@ import ConfirmToast from "@/components/toast-error-loading/ConfirmToast";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { jobsData } from "@/lib/dummy-data";
+import {
+  useDeleterUserMutation,
+  useSuspendUserMutation,
+} from "@/redux/api/userApi/useApi";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 
 export default function JobDetails() {
   const [isSaved, setIsSaved] = useState(false);
   const job = jobsData.find((j) => j.id === "1") || jobsData[0];
+  const { id } = useParams();
 
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [mess, setmess] = useState<string>("");
+  const [messtype, setmesstype] = useState<string>("");
+  const [suspendUser, { isLoading: isSuspending, isError: isSuspendError }] =
+    useSuspendUserMutation();
+  const [deleterUser, { isLoading: isDeleting, isError: isDeleteError }] =
+    useDeleterUserMutation();
+
   const handleDelete = (): void => {
-    alert("User deleted!"); // Replace with API call
-    setShowConfirm(false);
+    if (messtype === "Sus") {
+      suspendUser({ id, body: { status: "suspended" } });
+    } else if (messtype === "Del") {
+      deleterUser({ id, body: { status: "deleted" } });
+    }
+    setShowConfirm(false); // Close the confirmation modal after action
   };
   return (
     <div className="container mx-auto">
@@ -48,6 +64,7 @@ export default function JobDetails() {
               <Button
                 onClick={() => {
                   setShowConfirm(true);
+                  setmesstype("Sus")
                   setmess("Suspend User Account?");
                 }}
                 className="bg-emerald-500 hover:bg-emerald-600 text-white px-6"
@@ -56,6 +73,7 @@ export default function JobDetails() {
               </Button>
               <Button
                 onClick={() => {
+                  setmesstype("Del")
                   setShowConfirm(true);
                   setmess("Delete User Account?");
                 }}

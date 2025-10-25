@@ -87,9 +87,9 @@ export default function Overview() {
       lastName: user.lastName,
       fullName: user.fullName,
       profilePic: user.profilePic || "",
-      role: ["ADMIN", "JOB SEEKER", "EMPLOYER"].includes(user.role)
-        ? (user.role as "ADMIN" | "JOB SEEKER" | "EMPLOYER")
-        : "JOB SEEKER",
+      role: ["ADMIN", "JOB_SEEKER", "EMPLOYEE"].includes(user.role)
+        ? (user.role as "ADMIN" | "JOB_SEEKER" | "EMPLOYEE")
+        : "JOB_SEEKER",
       isSubscribed: user.isSubscribed,
       companyName: user.companyName || "",
       joiningDate: user.joiningDate,

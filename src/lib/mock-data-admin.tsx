@@ -7,7 +7,7 @@ export interface Job {
   lastName: string;
   fullName: string;
   profilePic: string;
-  role: "ADMIN" | "JOB SEEKER" | "EMPLOYER"; // adjust according to your roles
+  role: "ADMIN" | "JOB_SEEKER" | "EMPLOYEE"; // adjust according to your roles
   isSubscribed: boolean;
   companyName: string;
   joiningDate: string | null;

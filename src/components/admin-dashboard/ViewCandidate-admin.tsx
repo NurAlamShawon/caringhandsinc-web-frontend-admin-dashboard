@@ -8,6 +8,10 @@ import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import ConfirmToast from "@/components/toast-error-loading/ConfirmToast";
+import {
+  useDeleterUserMutation,
+  useSuspendUserMutation,
+} from "@/redux/api/userApi/useApi";
 
 interface Education {
   degree: string;
@@ -35,6 +39,7 @@ interface WorkExperience {
 }
 
 interface CandidateData {
+  id: string;
   name: string;
   title: string;
   phone: string;
@@ -57,6 +62,7 @@ interface CandidateData {
 }
 
 export const CandidateResumeCard: React.FC<CandidateData> = ({
+  id,
   name,
   title,
   phone,
@@ -70,23 +76,26 @@ export const CandidateResumeCard: React.FC<CandidateData> = ({
   workExperiences,
   skills,
   socialLinks,
- 
 }) => {
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
-   const [mess, setmess] = useState<string>("");
+  const [mess, setmess] = useState<string>("");
+  const [messtype, setmesstype] = useState<string>("");
+  const [suspendUser, { isLoading: isSuspending, isError: isSuspendError }] =
+    useSuspendUserMutation();
+  const [deleterUser, { isLoading: isDeleting, isError: isDeleteError }] =
+    useDeleterUserMutation();
+
   const handleDelete = (): void => {
-    alert("User deleted!"); // Replace with API call
-    setShowConfirm(false);
+    if (messtype === "Sus") {
+      suspendUser({ id, body: { status: "suspended" } });
+    } else if (messtype === "Del") {
+      deleterUser({ id, body: { status: "deleted" } });
+    }
+    setShowConfirm(false); // Close the confirmation modal after action
   };
+
   return (
     <div className="w-full  mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
-        {showConfirm && (
-          <ConfirmToast
-            message={mess}
-            onConfirm={handleDelete}
-            onCancel={() => setShowConfirm(false)}
-          />
-        )}
       {/* Header Section */}
       <div className="p-6 border-b border-gray-200">
         <div className="md:flex    ">
@@ -144,19 +153,20 @@ export const CandidateResumeCard: React.FC<CandidateData> = ({
           {/* Action Buttons */}
           <div className="flex flex-col gap-3 mt-6 md:mt-0">
             <Button
-              onClick={()=>{
+              onClick={() => {
                 setShowConfirm(true);
-                setmess("Suspend User Account?")
+                setmess("Suspend User Account?");
+                setmesstype("Sus");
               }}
-              
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-6"
             >
               Suspend Account
             </Button>
             <Button
-              onClick={()=>{
+              onClick={() => {
                 setShowConfirm(true);
-                setmess("Delete User Account?")
+                setmesstype("Del");
+                setmess("Delete User Account?");
               }}
               className="border-red-500 text-red-500 hover:bg-red-50 px-6 bg-transparent"
             >

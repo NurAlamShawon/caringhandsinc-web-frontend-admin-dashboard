@@ -18,12 +18,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SelectIcon } from "@radix-ui/react-select";
-import { useGetUsersQuery } from "@/redux/api/userApi/useApi";
+import {
+  useGetUsersQuery,
+  useUpdateRoleMutation,
+} from "@/redux/api/userApi/useApi";
 
 export default function Overview() {
   const { isLoading, data } = useGetUsersQuery({});
+  const [updateRole, { isLoading: isUpdating }] = useUpdateRoleMutation();
   const [filterType, setFilterType] = useState<
-    "ALL" | "JOB SEEKER" | "EMPLOYER"
+    "ALL" | "JOB_SEEKER" | "EMPLOYEE"
   >("ALL");
   const [jobsData, setJobsData] = useState<Job[]>([]);
 
@@ -37,9 +41,9 @@ export default function Overview() {
         lastName: user.lastName,
         fullName: user.fullName,
         profilePic: user.profilePic || "",
-        role: ["ADMIN", "JOB SEEKER", "EMPLOYER"].includes(user.role)
-          ? (user.role as "ADMIN" | "JOB SEEKER" | "EMPLOYER")
-          : "JOB SEEKER",
+        role: ["ADMIN", "JOB_SEEKER", "EMPLOYEE"].includes(user.role)
+          ? (user.role as "ADMIN" | "JOB_SEEKER" | "EMPLOYEE")
+          : "JOB_SEEKER",
         isSubscribed: user.isSubscribed,
         companyName: user.companyName || "",
         joiningDate: user.joiningDate,
@@ -63,25 +67,44 @@ export default function Overview() {
   // Role options for dropdown
   const roleOptions = [
     { value: "ADMIN", label: "ADMIN" },
-    { value: "JOB SEEKER", label: "JOB SEEKER" },
-    { value: "EMPLOYER", label: "EMPLOYER" },
+    { value: "JOB_SEEKER", label: "JOB_SEEKER" },
+    { value: "EMPLOYEE", label: "EMPLOYEE" },
   ];
 
   // Handle role change
-  const handleRoleChange = (id: string, newRoleValue: string) => {
+  const handleRoleChange = async (email: string, newRoleValue: string) => {
+    // Optimistically update the local state
     setJobsData((prev) =>
       prev.map((job) =>
-        job.id === id
+        job.email === email
           ? {
               ...job,
               role: newRoleValue.toUpperCase() as
                 | "ADMIN"
-                | "JOB SEEKER"
-                | "EMPLOYER",
+                | "JOB_SEEKER"
+                | "EMPLOYEE",
             }
           : job
       )
     );
+
+    try {
+      // Call the API to update the role
+      await updateRole({
+        email,
+        body: {
+          role: newRoleValue.toUpperCase() as
+            | "ADMIN"
+            | "JOB_SEEKER"
+            | "EMPLOYEE",
+        },
+      }).unwrap();
+      console.log("Role updated successfully");
+    } catch (error) {
+      // If an error occurs, revert the local change
+      console.error("Error updating role:", error);
+      // Optionally, you can revert the changes made optimistically here
+    }
   };
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -103,7 +126,7 @@ export default function Overview() {
         return (
           <Select
             value={row.role}
-            onValueChange={(val) => handleRoleChange(row.id, val)}
+            onValueChange={(val) => handleRoleChange(row.email, val)}
           >
             <SelectTrigger className="w-[140px] bg-[#28C76F1A] text-[#10B981] border border-[#10B981] rounded-2xl text-sm hover:bg-gray-100 focus:ring-emerald-500 uppercase">
               <SelectValue>{row.role}</SelectValue>
@@ -129,9 +152,9 @@ export default function Overview() {
       render: (_, row) => {
         if (!row) return null;
         const href =
-          row.role === "EMPLOYER"
-            ? `/admin-dashboard/user-management/view-candidate-profile/${row.id}`
-            : `/admin-dashboard/job-management/job-details/${row.id}`;
+          row.role === "EMPLOYEE"
+            ? `/admin-dashboard/job-management/job-details/${row.id}`
+            : `/admin-dashboard/user-management/view-candidate-profile/${row.id}`;
         return (
           <Link
             href={href}
@@ -153,7 +176,7 @@ export default function Overview() {
             <Select
               value={filterType}
               onValueChange={(val) =>
-                setFilterType(val as "ALL" | "JOB SEEKER" | "EMPLOYER")
+                setFilterType(val as "ALL" | "JOB_SEEKER" | "EMPLOYEE")
               }
             >
               <SelectTrigger className="w-[150px] bg-black text-white flex justify-between items-center rounded-md px-2 uppercase">
@@ -169,8 +192,8 @@ export default function Overview() {
                 <SelectItem value="JOB SEEKER" className="uppercase">
                   JOB SEEKER
                 </SelectItem>
-                <SelectItem value="EMPLOYER" className="uppercase">
-                  EMPLOYER
+                <SelectItem value="EMPLOYEE" className="uppercase">
+                  EMPLOYEE
                 </SelectItem>
               </SelectContent>
             </Select>
