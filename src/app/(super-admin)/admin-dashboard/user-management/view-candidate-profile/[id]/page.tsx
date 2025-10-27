@@ -1,7 +1,9 @@
-"use client"
+"use client";
 import { CandidateResumeCard } from "@/components/admin-dashboard/ViewCandidate-admin";
+import { useGetUsersbyIdQuery } from "@/redux/api/userApi/useApi";
+import { useParams } from "next/navigation";
 const exampleCandidate = {
-  id:"5546sfe",
+  id: "5546sfe",
   name: "SAIFUR RAHMAN",
   title: "UI/UX Designer",
   phone: "+880 1255555555",
@@ -89,9 +91,18 @@ const exampleCandidate = {
 };
 
 export default function ViewCandidateProfile() {
+  // const { id } = useParams();
+
+  // // Fetch user data with RTK Query
+
+  // const { data, isLoading, isError } = useGetUsersbyIdQuery(
+  //   { id: id as string },
+  //   {}
+  // );
+
   return (
     <div>
-      <CandidateResumeCard {...exampleCandidate } />
+      <CandidateResumeCard {...exampleCandidate} />
     </div>
   );
 }

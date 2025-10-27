@@ -24,93 +24,62 @@ import {
 } from "@/redux/api/userApi/useApi";
 
 export default function Overview() {
-  const { isLoading, data } = useGetUsersQuery({});
-  const [updateRole, { isLoading: isUpdating }] = useUpdateRoleMutation();
-  const [filterType, setFilterType] = useState<
-    "ALL" | "JOB_SEEKER" | "EMPLOYEE"
-  >("ALL");
-  const [jobsData, setJobsData] = useState<Job[]>([]);
+  const [updateRole] = useUpdateRoleMutation();
+  const [filterType, setFilterType] = useState<"ALL" | "JOB_SEEKER" | "EMPLOYEE">("ALL");
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
-  // Map API data to Job type when data is fetched
-  useEffect(() => {
-    if (data?.data) {
-      const mappedData: Job[] = data.data.map((user) => ({
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        fullName: user.fullName,
-        profilePic: user.profilePic || "",
-        role: ["ADMIN", "JOB_SEEKER", "EMPLOYEE"].includes(user.role)
-          ? (user.role as "ADMIN" | "JOB_SEEKER" | "EMPLOYEE")
-          : "JOB_SEEKER",
-        isSubscribed: user.isSubscribed,
-        companyName: user.companyName || "",
-        joiningDate: user.joiningDate,
-        planExpiration: user.planExpiration,
-        subscriptionType: user.subscriptionType,
-        planId: user.planId,
-        totalPayPerJobCount: user.totalPayPerJobCount,
-        isVerified: user.isVerified,
-        createdAt: user.createdAt,
-      }));
-      setJobsData(mappedData);
-    }
-  }, [data]);
+  // 🔹 Fetch users using RTK Query with pagination
+  const { isLoading, data } = useGetUsersQuery({
+    page: String(page),
+    limit: String(limit),
+  });
 
-  // Filter jobs based on filterType
-  const filteredData = useMemo(() => {
-    if (filterType === "ALL") return jobsData;
-    return jobsData.filter((job) => job.role === filterType);
-  }, [filterType, jobsData]);
+  // 🔹 Extract pagination info from response
+  const pagination = data?.meta || { total: 0, page: 1, totalPage: 1 };
 
-  // Role options for dropdown
-  const roleOptions = [
-    { value: "ADMIN", label: "ADMIN" },
-    { value: "JOB_SEEKER", label: "JOB_SEEKER" },
-    { value: "EMPLOYEE", label: "EMPLOYEE" },
-  ];
+  // 🔹 Transform API data into table-friendly format
+  const usersData: Job[] =
+    data?.data?.map((user: any) => ({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      fullName: user.fullName,
+      profilePic: user.profilePic || "",
+      role: ["ADMIN", "JOB_SEEKER", "EMPLOYEE"].includes(user.role)
+        ? (user.role as "ADMIN" | "JOB_SEEKER" | "EMPLOYEE")
+        : "JOB_SEEKER",
+      isSubscribed: user.isSubscribed,
+      companyName: user.companyName || "",
+      joiningDate: user.joiningDate,
+      planExpiration: user.planExpiration,
+      subscriptionType: user.subscriptionType,
+      planId: user.planId,
+      totalPayPerJobCount: user.totalPayPerJobCount,
+      isVerified: user.isVerified,
+      createdAt: user.createdAt,
+    })) ?? [];
 
-  // Handle role change
+  // 🔹 Filter users based on filterType
+  const filteredUsersData = useMemo(() => {
+    if (filterType === "ALL") return usersData;
+    return usersData.filter((user) => user.role === filterType);
+  }, [filterType, usersData]);
+
+  // 🔹 Handle role change
   const handleRoleChange = async (email: string, newRoleValue: string) => {
-    // Optimistically update the local state
-    setJobsData((prev) =>
-      prev.map((job) =>
-        job.email === email
-          ? {
-              ...job,
-              role: newRoleValue.toUpperCase() as
-                | "ADMIN"
-                | "JOB_SEEKER"
-                | "EMPLOYEE",
-            }
-          : job
-      )
-    );
-
+    // Optimistically update
+    usersData.forEach((user) => {
+      if (user.email === email) user.role = newRoleValue as any;
+    });
     try {
-      // Call the API to update the role
-      await updateRole({
-        email,
-        body: {
-          role: newRoleValue.toUpperCase() as
-            | "ADMIN"
-            | "JOB_SEEKER"
-            | "EMPLOYEE",
-        },
-      }).unwrap();
+      await updateRole({ email, body: { role: newRoleValue.toUpperCase() } }).unwrap();
       console.log("Role updated successfully");
     } catch (error) {
-      // If an error occurs, revert the local change
       console.error("Error updating role:", error);
-      // Optionally, you can revert the changes made optimistically here
     }
   };
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Table columns
   const jobColumns: ColumnDef<Job>[] = [
@@ -123,6 +92,7 @@ export default function Overview() {
       label: "Role Change",
       render: (_, row) => {
         if (!row) return null;
+        const roleOptions = ["ADMIN", "JOB_SEEKER", "EMPLOYEE"];
         return (
           <Select
             value={row.role}
@@ -133,12 +103,8 @@ export default function Overview() {
             </SelectTrigger>
             <SelectContent className="backdrop-blur-md bg-white/80 shadow-lg rounded-lg">
               {roleOptions.map((role) => (
-                <SelectItem
-                  key={role.value + row.id}
-                  value={role.value}
-                  className="uppercase"
-                >
-                  {role.label}
+                <SelectItem key={role + row.id} value={role} className="uppercase">
+                  {role}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -172,44 +138,41 @@ export default function Overview() {
       <Card className="shadow-sm mt-6">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="uppercase">ALL USERS</CardTitle>
-          <div className="flex items-center gap-2">
-            <Select
-              value={filterType}
-              onValueChange={(val) =>
-                setFilterType(val as "ALL" | "JOB_SEEKER" | "EMPLOYEE")
-              }
-            >
-              <SelectTrigger className="w-[150px] bg-black text-white flex justify-between items-center rounded-md px-2 uppercase">
-                <SelectValue>{filterType}</SelectValue>
-                <SelectIcon>
-                  <ChevronDown className="text-white" />
-                </SelectIcon>
-              </SelectTrigger>
-              <SelectContent className="backdrop-blur-md bg-black/70 text-white rounded-lg shadow-lg">
-                <SelectItem value="ALL" className="uppercase">
-                  ALL
-                </SelectItem>
-                <SelectItem value="JOB SEEKER" className="uppercase">
-                  JOB SEEKER
-                </SelectItem>
-                <SelectItem value="EMPLOYEE" className="uppercase">
-                  EMPLOYEE
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            value={filterType}
+            onValueChange={(val) =>
+              setFilterType(val as "ALL" | "JOB_SEEKER" | "EMPLOYEE")
+            }
+          >
+            <SelectTrigger className="w-[150px] bg-black text-white flex justify-between items-center rounded-md px-2 uppercase">
+              <SelectValue>{filterType}</SelectValue>
+              <SelectIcon>
+                <ChevronDown className="text-white" />
+              </SelectIcon>
+            </SelectTrigger>
+            <SelectContent className="backdrop-blur-md bg-black/70 text-white rounded-lg shadow-lg">
+              <SelectItem value="ALL" className="uppercase">ALL</SelectItem>
+              <SelectItem value="JOB_SEEKER" className="uppercase">JOB_SEEKER</SelectItem>
+              <SelectItem value="EMPLOYEE" className="uppercase">EMPLOYEE</SelectItem>
+            </SelectContent>
+          </Select>
         </CardHeader>
 
         <CardContent>
-          {loading || isLoading ? (
+          {isLoading ? (
             <div className="mx-auto w-40 my-10">
               <Spinner />
             </div>
           ) : (
             <DataTable
-              data={filteredData}
+              data={filteredUsersData}
               columns={jobColumns}
-              rowsPerPage={10}
+              pagination={{
+                currentPage: pagination.page,
+                totalPages: pagination.totalPage,
+                totalItems: pagination.total,
+                onPageChange: setPage,
+              }}
               searchableColumns={["role", "fullName"]}
               onRowClick={(row) => console.log("Row clicked:", row)}
             />

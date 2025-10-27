@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useState, useMemo } from "react";
 import {
   Table,
@@ -11,11 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
@@ -23,28 +20,41 @@ import {
 } from "@/components/ui/pagination";
 import { ChevronUp, ChevronDown } from "lucide-react";
 
+// Type for each column
 export interface ColumnDef<T, K extends keyof T = keyof T> {
   key: K;
   label: string;
   sortable?: boolean;
-  render?: (value: T[K], row?: T) => React.ReactNode; // value now typed correctly
+  render?: (value: T[K], row?: T) => React.ReactNode;
   width?: string;
 }
 
+// Type for external pagination (API-based)
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+}
+
+// Main props for DataTable
 interface DataTableProps<T> {
   data: T[];
   columns: ColumnDef<T>[];
   rowsPerPage?: number;
   searchableColumns?: (keyof T)[];
   onRowClick?: (row: T) => void;
+  pagination?: PaginationProps; // API pagination
 }
 
+// Generic DataTable component
 export function DataTable<T extends { id: string }>({
   data,
   columns,
   rowsPerPage = 10,
   searchableColumns = [],
   onRowClick,
+  pagination, // ✅ API pagination
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<{
@@ -53,10 +63,9 @@ export function DataTable<T extends { id: string }>({
   } | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Filter data based on search term
+  // 🔍 Search filter
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
-
     return data.filter((row) =>
       searchableColumns.some((col) => {
         const value = row[col];
@@ -65,27 +74,33 @@ export function DataTable<T extends { id: string }>({
     );
   }, [data, searchTerm, searchableColumns]);
 
-  // Sort data
+  // 🔃 Sorting logic
   const sortedData = useMemo(() => {
     if (!sortConfig) return filteredData;
-
-    const sorted = [...filteredData].sort((a, b) => {
+    return [...filteredData].sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
-
       if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
       return 0;
     });
-
-    return sorted;
   }, [filteredData, sortConfig]);
 
-  // Paginate data
-  const totalPages = Math.ceil(sortedData.length / rowsPerPage);
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const paginatedData = sortedData.slice(startIndex, startIndex + rowsPerPage);
+  // Local fallback pagination
+  const totalPages =
+    pagination?.totalPages ?? Math.ceil(sortedData.length / rowsPerPage);
 
+  const startIndex = pagination
+    ? 0
+    : (currentPage - 1) * rowsPerPage;
+
+  const paginatedData = pagination
+    ? sortedData // API already paginated
+    : sortedData.slice(startIndex, startIndex + rowsPerPage);
+
+  const effectivePage = pagination?.currentPage ?? currentPage;
+
+  // Handle sorting
   const handleSort = (key: keyof T) => {
     setSortConfig((prev) => {
       if (prev?.key === key) {
@@ -95,23 +110,35 @@ export function DataTable<T extends { id: string }>({
     });
   };
 
+  // Handle local page change
   const handlePageChange = (page: number) => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
   return (
     <div className="space-y-4">
-      {/* Search Bar */}
+      {/* Search bar */}
+      {searchableColumns.length > 0 && (
+        <div>
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          />
+        </div>
+      )}
 
       {/* Table */}
       <div className="border rounded-md overflow-hidden">
         <Table className="px-8">
-          <TableHeader className="bg-emerald-600 hover:bg-emerald-600">
-            <TableRow className="hover:bg-emerald-600 border-0">
-              {columns.map((column,index) => (
+          <TableHeader className="bg-emerald-600">
+            <TableRow>
+              {columns.map((column) => (
                 <TableHead
                   key={String(column.key)}
-                  className="text-white font-medium text-[20px] cursor-pointer hover:bg-emerald-700 transition-colors"
+                  className="text-white font-medium text-[18px] cursor-pointer hover:bg-emerald-700 transition-colors"
                   onClick={() => column.sortable && handleSort(column.key)}
                 >
                   <div className="flex items-center gap-2">
@@ -141,6 +168,7 @@ export function DataTable<T extends { id: string }>({
               ))}
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {paginatedData.length > 0 ? (
               paginatedData.map((row) => (
@@ -153,7 +181,7 @@ export function DataTable<T extends { id: string }>({
                     <TableCell key={String(column.key)} className="py-4">
                       {column.render
                         ? column.render(row[column.key], row)
-                        : String(row[column.key])}
+                        : String(row[column.key] ?? "")}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -174,19 +202,28 @@ export function DataTable<T extends { id: string }>({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between   ">
+        <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground w-full">
-            Showing {startIndex + 1} to{" "}
-            {Math.min(startIndex + rowsPerPage, sortedData.length)} of{" "}
-            {sortedData.length} results
+            {pagination
+              ? `Page ${pagination.currentPage} of ${pagination.totalPages}`
+              : `${startIndex + 1}-${Math.min(
+                  startIndex + rowsPerPage,
+                  sortedData.length
+                )} of ${sortedData.length}`}
           </p>
+
           <Pagination className="flex justify-end">
             <PaginationContent>
               <PaginationItem>
                 <PaginationPrevious
-                  onClick={() => handlePageChange(currentPage - 1)}
+                  onClick={() => {
+                    const newPage = Math.max(1, effectivePage - 1);
+                    pagination
+                      ? pagination.onPageChange(newPage)
+                      : handlePageChange(newPage);
+                  }}
                   className={
-                    currentPage === 1
+                    effectivePage === 1
                       ? "pointer-events-none opacity-50"
                       : "cursor-pointer"
                   }
@@ -194,56 +231,33 @@ export function DataTable<T extends { id: string }>({
               </PaginationItem>
 
               {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => {
-                  if (totalPages <= 5) {
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(page)}
-                          isActive={page === currentPage}
-                          className="cursor-pointer"
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  }
-
-                  if (
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1)
-                  ) {
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(page)}
-                          isActive={page === currentPage}
-                          className="cursor-pointer"
-                        >
-                          {page}
-                        </PaginationLink>
-                      </PaginationItem>
-                    );
-                  }
-
-                  if (page === currentPage - 2 || page === currentPage + 2) {
-                    return (
-                      <PaginationItem key={page}>
-                        <PaginationEllipsis />
-                      </PaginationItem>
-                    );
-                  }
-
-                  return null;
-                }
+                (pageNumber) => (
+                  <PaginationItem key={pageNumber}>
+                    <PaginationLink
+                      onClick={() => {
+                        pagination
+                          ? pagination.onPageChange(pageNumber)
+                          : handlePageChange(pageNumber);
+                      }}
+                      isActive={pageNumber === effectivePage}
+                      className="cursor-pointer"
+                    >
+                      {pageNumber}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
               )}
 
               <PaginationItem>
                 <PaginationNext
-                  onClick={() => handlePageChange(currentPage + 1)}
+                  onClick={() => {
+                    const newPage = Math.min(totalPages, effectivePage + 1);
+                    pagination
+                      ? pagination.onPageChange(newPage)
+                      : handlePageChange(newPage);
+                  }}
                   className={
-                    currentPage === totalPages
+                    effectivePage === totalPages
                       ? "pointer-events-none opacity-50"
                       : "cursor-pointer"
                   }

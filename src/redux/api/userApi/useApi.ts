@@ -1,17 +1,24 @@
-import { UserResponseDataType } from "@/types/userTypes/userTypes";
+import {
+  SingleUserResponseDataType,
+  UserResponseDataType,
+} from "@/types/userTypes/userTypes";
 import { baseApi } from "../baseApi";
 
 export const userApi = baseApi.injectEndpoints({
+  overrideExisting: true, // ✅ add this
   endpoints: (builder) => ({
-    // login admin
-    getUsers: builder.query<UserResponseDataType, Record<string, string>>({
-      query: (params) => ({
-        url: "/users",
+    // get all users
+    getUsers: builder.query<
+      UserResponseDataType,
+      { page: string; limit: string }
+    >({
+      query: ({ page, limit }) => ({
+        url: `/users?page=${page}&limit=${limit}`,
         method: "GET",
-        params,
       }),
       providesTags: ["User"],
     }),
+
     // get selected user
     getUsersbyId: builder.query<UserResponseDataType, Record<string, string>>({
       query: ({ id }) => ({
@@ -48,13 +55,22 @@ export const userApi = baseApi.injectEndpoints({
       invalidatesTags: ["User"],
     }),
     // Get me
-    getMe: builder.query<UserResponseDataType, Record<string, string>>({
+    getMe: builder.query<SingleUserResponseDataType, void>({
       query: () => ({
         url: "/auth/me",
         method: "GET",
-  
       }),
       providesTags: ["User"],
+    }),
+    // update contact info
+    updateContact: builder.mutation({
+      query: ({ body }: { body: FormData }) => ({
+        url: "/users/update",
+        method: "PATCH",
+        body,
+        // Do NOT set headers here; FormData will set them automatically
+      }),
+      invalidatesTags: ["User"],
     }),
   }),
 });
@@ -66,4 +82,5 @@ export const {
   useSuspendUserMutation,
   useDeleterUserMutation,
   useGetMeQuery,
+  useUpdateContactMutation,
 } = userApi;

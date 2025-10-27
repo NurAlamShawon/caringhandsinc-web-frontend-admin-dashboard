@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,9 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ChevronDown } from "lucide-react";
-import { mockChartData } from "@/lib/mock-data-admin";
+import { useGetChartStatisticQuery } from "@/redux/api/statistic/statisticApi";
 
-// Start dot
+// Small utility dots/arrows
 type StartDotProps = { cx?: number; cy?: number; stroke?: string };
 const StartDot: React.FC<StartDotProps> = ({
   cx = 0,
@@ -24,7 +24,6 @@ const StartDot: React.FC<StartDotProps> = ({
   stroke = "#000",
 }) => <circle cx={cx} cy={cy} r={4} fill={stroke} />;
 
-// End arrow as SVG
 type EndArrowProps = {
   x?: number;
   y?: number;
@@ -52,7 +51,72 @@ const EndArrow: React.FC<EndArrowProps> = ({
   </svg>
 );
 
+// Chart Data Type
+type ChartData = {
+  month: string;
+  "Job Seeker": number;
+  Employer: number;
+};
+
 export function LiveJobChart() {
+  const [chartData, setChartData] = useState<ChartData[]>([]);
+
+  const {
+    data: apiResponse,
+    isLoading,
+    isError,
+  } = useGetChartStatisticQuery({});
+console.log("API response:", apiResponse);
+
+
+  useEffect(() => {
+    if (!apiResponse?.data) return; // check data exists
+
+    const { jobSeekers, employers } = apiResponse.data; // ✅ directly
+
+    const transformedData: ChartData[] = [
+      {
+        month: "Last Month",
+        "Job Seeker": jobSeekers.loginsLastMonth ?? 0,
+        Employer: employers.loginsLastMonth ?? 0,
+      },
+      {
+        month: "This Month",
+        "Job Seeker": jobSeekers.loginsThisMonth ?? 0,
+        Employer: employers.loginsThisMonth ?? 0,
+      },
+    ];
+
+    setChartData(transformedData);
+  }, [apiResponse]);
+
+  // Loading / Error Handling
+  if (isLoading) {
+    return (
+      <Card className="col-span-1 lg:col-span-2 shadow-sm">
+        <CardHeader>
+          <CardTitle>Login User</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>Loading chart...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isError || chartData.length === 0) {
+    return (
+      <Card className="col-span-1 lg:col-span-2 shadow-sm">
+        <CardHeader>
+          <CardTitle>Login User</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p>No chart data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="col-span-1 lg:col-span-2 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -62,32 +126,22 @@ export function LiveJobChart() {
           size="sm"
           className="bg-emerald-600 hover:bg-emerald-700 gap-2"
         >
-          Last Month
+          Monthly
           <ChevronDown className="w-4 h-4" />
         </Button>
       </CardHeader>
+
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={mockChartData}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-
-            {/* X and Y axes without lines */}
             <XAxis
-              dataKey="day"
+              dataKey="month"
               axisLine={false}
               tickLine={false}
               stroke="#999"
-              tick={{ fill: "#333333", fontSize: 14, fontWeight: 500,  dy: 15 }} // <- label color & spacing
             />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              stroke="#999"
-              domain={[100, 400]}
-              ticks={[100, 200, 300, 400]}
-              tick={{ fill: "#333333", fontSize: 14, fontWeight: 500,  dx: -15 }} // <- label color & spacing
-            />
-
+            <YAxis axisLine={false} tickLine={false} stroke="#999" />
             <Tooltip
               contentStyle={{
                 backgroundColor: "#fff",
@@ -97,23 +151,20 @@ export function LiveJobChart() {
             />
             <Legend verticalAlign="top" iconType="circle" />
 
-            {/* Job Seeker Line */}
             <Line
               type="monotone"
               dataKey="Job Seeker"
               stroke="#10b981"
               strokeWidth={2}
               dot={false}
-              label={(props) => {
-                const { index, x, y } = props;
+              label={({ index, x, y }) => {
                 if (index === 0)
                   return (
                     <StartDot cx={Number(x)} cy={Number(y)} stroke="#10b981" />
                   );
-
-                if (index === mockChartData.length - 1) {
-                  const prev = mockChartData[index - 1];
-                  const dx = Number(x) - index + 0; // assuming evenly spaced X
+                if (index === chartData.length - 1) {
+                  const prev = chartData[index - 1];
+                  const dx = 1;
                   const dy = Number(y) - Number(prev["Job Seeker"]);
                   const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
                   return (
@@ -125,29 +176,25 @@ export function LiveJobChart() {
                     />
                   );
                 }
-
                 return null;
               }}
             />
 
-            {/* Employee Line */}
             <Line
               type="monotone"
-              dataKey="Employee"
+              dataKey="Employer"
               stroke="#ef4444"
               strokeWidth={2}
               dot={false}
-              label={(props) => {
-                const { index, x, y } = props;
+              label={({ index, x, y }) => {
                 if (index === 0)
                   return (
                     <StartDot cx={Number(x)} cy={Number(y)} stroke="#ef4444" />
                   );
-
-                if (index === mockChartData.length - 1) {
-                  const prev = mockChartData[index - 1];
-                  const dx = Number(x) - index + 0; // evenly spaced X
-                  const dy = Number(y) - Number(prev.Employee);
+                if (index === chartData.length - 1) {
+                  const prev = chartData[index - 1];
+                  const dx = 1;
+                  const dy = Number(y) - Number(prev["Employer"]);
                   const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
                   return (
                     <EndArrow
@@ -158,7 +205,6 @@ export function LiveJobChart() {
                     />
                   );
                 }
-
                 return null;
               }}
             />
