@@ -1,6 +1,7 @@
 import {
   SingleUserResponseDataType,
   UserResponseDataType,
+  SingleProfileApiResponse,
 } from "@/types/userTypes/userTypes";
 import { baseApi } from "../baseApi";
 
@@ -72,6 +73,16 @@ export const userApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ["User"],
     }),
+
+    // Get profile
+
+    getMyProfile: builder.query<SingleProfileApiResponse, Record<string, string>>({
+      query: ({ id }) => ({
+        url: `/profiles/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["User"],
+    }),
   }),
 });
 
@@ -83,4 +94,5 @@ export const {
   useDeleterUserMutation,
   useGetMeQuery,
   useUpdateContactMutation,
+  useGetMyProfileQuery,
 } = userApi;

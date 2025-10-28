@@ -13,7 +13,7 @@ import {
   useSuspendUserMutation,
 } from "@/redux/api/userApi/useApi";
 
-interface Education {
+export interface Education {
   degree: string;
   field: string;
   institution: string;
@@ -22,14 +22,14 @@ interface Education {
   endDate: string;
 }
 
-interface Certification {
+export interface Certification {
   title: string;
   issuer: string;
   startDate: string;
   endDate: string;
 }
 
-interface WorkExperience {
+export interface WorkExperience {
   title: string;
   company: string;
   companyGroup?: string;
@@ -38,7 +38,7 @@ interface WorkExperience {
   summary: string;
 }
 
-interface CandidateData {
+export interface CandidateData {
   id: string;
   name: string;
   title: string;

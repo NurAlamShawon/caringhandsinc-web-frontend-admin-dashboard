@@ -39,8 +39,9 @@ export default function Overview() {
   const pagination = data?.meta || { total: 0, page: 1, totalPage: 1 };
 
   // 🔹 Transform API data into table-friendly format
-  const usersData: Job[] =
-    data?.data?.map((user: any) => ({
+const usersData: Job[] = useMemo(() => {
+  return (
+    data?.data?.map((user) => ({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -59,7 +60,9 @@ export default function Overview() {
       totalPayPerJobCount: user.totalPayPerJobCount,
       isVerified: user.isVerified,
       createdAt: user.createdAt,
-    })) ?? [];
+    })) ?? []
+  );
+}, [data?.data]); // Only recompute if `data.data` changes
 
   // 🔹 Filter users based on filterType
   const filteredUsersData = useMemo(() => {
@@ -67,19 +70,23 @@ export default function Overview() {
     return usersData.filter((user) => user.role === filterType);
   }, [filterType, usersData]);
 
-  // 🔹 Handle role change
-  const handleRoleChange = async (email: string, newRoleValue: string) => {
-    // Optimistically update
-    usersData.forEach((user) => {
-      if (user.email === email) user.role = newRoleValue as any;
-    });
-    try {
-      await updateRole({ email, body: { role: newRoleValue.toUpperCase() } }).unwrap();
-      console.log("Role updated successfully");
-    } catch (error) {
-      console.error("Error updating role:", error);
+type UserRole = "ADMIN" | "JOB_SEEKER" | "EMPLOYEE";
+
+const handleRoleChange = async (email: string, newRoleValue: UserRole) => {
+  // Update local state safely
+  usersData.forEach((user) => {
+    if (user.email === email) {
+      user.role = newRoleValue; // No 'any' needed
     }
-  };
+  });
+
+  try {
+    await updateRole({ email, body: { role: newRoleValue.toUpperCase() } }).unwrap();
+    console.log("Role updated successfully");
+  } catch (error) {
+    console.error("Error updating role:", error);
+  }
+};
 
   // Table columns
   const jobColumns: ColumnDef<Job>[] = [
@@ -96,7 +103,7 @@ export default function Overview() {
         return (
           <Select
             value={row.role}
-            onValueChange={(val) => handleRoleChange(row.email, val)}
+            onValueChange={(val) => handleRoleChange(row.email, val as UserRole)}
           >
             <SelectTrigger className="w-[140px] bg-[#28C76F1A] text-[#10B981] border border-[#10B981] rounded-2xl text-sm hover:bg-gray-100 focus:ring-emerald-500 uppercase">
               <SelectValue>{row.role}</SelectValue>
@@ -119,7 +126,7 @@ export default function Overview() {
         if (!row) return null;
         const href =
           row.role === "EMPLOYEE"
-            ? `/admin-dashboard/job-management/job-details/${row.id}`
+            ? `/admin-dashboard/user-management/view-employee-company-profile/${row.id}`
             : `/admin-dashboard/user-management/view-candidate-profile/${row.id}`;
         return (
           <Link
