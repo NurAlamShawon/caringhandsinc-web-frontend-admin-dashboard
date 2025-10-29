@@ -8,10 +8,8 @@ import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import ConfirmToast from "@/components/toast-error-loading/ConfirmToast";
-import {
-  useDeleterUserMutation,
-  useSuspendUserMutation,
-} from "@/redux/api/userApi/useApi";
+import { useDeleteJobMutation, useSuspendJobMutation } from "@/redux/api/jobApi/jobApi";
+import { useDeleterUserMutation, useSuspendUserMutation } from "@/redux/api/userApi/useApi";
 
 export interface Education {
   degree: string;
@@ -80,19 +78,21 @@ export const CandidateResumeCard: React.FC<CandidateData> = ({
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
   const [mess, setmess] = useState<string>("");
   const [messtype, setmesstype] = useState<string>("");
-  const [suspendUser, { isLoading: isSuspending, isError: isSuspendError }] =
-    useSuspendUserMutation();
-  const [deleterUser, { isLoading: isDeleting, isError: isDeleteError }] =
-    useDeleterUserMutation();
-
-  const handleDelete = (): void => {
-    if (messtype === "Sus") {
-      suspendUser({ id, body: { status: "suspended" } });
-    } else if (messtype === "Del") {
-      deleterUser({ id, body: { status: "deleted" } });
-    }
-    setShowConfirm(false); // Close the confirmation modal after action
-  };
+  const [suspendUser] = useSuspendUserMutation();
+  const [deleterUser] = useDeleterUserMutation();
+  
+    const handleDelete = (): void => {
+      if (!id) return;
+  
+      if (messtype === "Sus") {
+        suspendUser({ id });
+        
+      } else if (messtype === "Del") {
+        deleterUser({ id });
+      }
+      setShowConfirm(false);
+    };
+  
 
   return (
     <div className="w-full  mx-auto bg-white rounded-lg shadow-sm border border-gray-200">
@@ -102,15 +102,15 @@ export const CandidateResumeCard: React.FC<CandidateData> = ({
           {/* Profile Info */}
           <div className="flex items-start gap-6 flex-1">
             {/* Avatar */}
-            <div className="flex-shrink-0">
+            <div className="shrink-0">
               {avatar ? (
                 <Image
                   src={avatar || "/placeholder.svg"}
                   alt={name}
-                  className="w-24 h-24 rounded-full object-cover bg-gradient-to-br from-blue-300 to-cyan-300"
+                  className="w-24 h-24 rounded-full object-cover bg-linear-to-br from-blue-300 to-cyan-300"
                 />
               ) : (
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-300 to-cyan-300 flex items-center justify-center">
+                <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-300 to-cyan-300 flex items-center justify-center">
                   <div className="w-12 h-12 rounded-full bg-orange-200"></div>
                 </div>
               )}

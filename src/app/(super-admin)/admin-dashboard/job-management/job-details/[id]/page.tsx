@@ -22,17 +22,17 @@ export default function JobDetails() {
   const [mess, setMess] = useState("");
   const [messtype, setMesstype] = useState<"Sus" | "Del">("Sus");
 
-  const [suspendUser] = useSuspendJobMutation();
-  const [deleterUser] = useDeleteJobMutation();
+  const [suspendJob] = useSuspendJobMutation();
+  const [deleterJob] = useDeleteJobMutation();
 
   const handleDelete = (): void => {
     if (!id) return;
 
     if (messtype === "Sus") {
-      suspendUser({ id });
+      suspendJob({ id });
       
     } else if (messtype === "Del") {
-      deleterUser({ id, body: { status: "deleted" } });
+      deleterJob({ id });
     }
     setShowConfirm(false);
   };

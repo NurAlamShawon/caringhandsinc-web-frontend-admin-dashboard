@@ -12,15 +12,9 @@ import {
   DataTable,
   type ColumnDef,
 } from "@/components/ui/custom-data-table-admin";
-
 import type { EmployeeData, EmployeeJob } from "@/types/userTypes/userTypes";
-
-import {
-  useDeleteJobMutation,
-  useSuspendJobMutation,
-} from "@/redux/api/jobApi/jobApi";
 import ConfirmToast from "@/components/toast-error-loading/ConfirmToast";
-import { useGetEmployeeProfileQuery } from "@/redux/api/userApi/useApi";
+import { useDeleterUserMutation, useGetEmployeeProfileQuery, useSuspendUserMutation } from "@/redux/api/userApi/useApi";
 
 type JobRow = {
   id: string;
@@ -42,19 +36,21 @@ export default function ViewEmployeeCompanyProfile() {
   const [mess, setMess] = useState("");
   const [messtype, setMesstype] = useState<"Sus" | "Del">("Sus");
 
-  const [suspendJob] = useSuspendJobMutation();
-  const [deleteJob] = useDeleteJobMutation();
+ const [suspendUser] = useSuspendUserMutation();
+  const [deleterUser] = useDeleterUserMutation();
 
   const handleDelete = (): void => {
     if (!id) return;
 
     if (messtype === "Sus") {
-      suspendJob({ id });
+      suspendUser({ id });
+      
     } else if (messtype === "Del") {
-      deleteJob({ id, body: { status: "deleted" } });
+      deleterUser({ id });
     }
     setShowConfirm(false);
   };
+
 
   // ✅ Hooks must run first
   const companyData: EmployeeData | undefined = data?.data;
@@ -83,7 +79,9 @@ export default function ViewEmployeeCompanyProfile() {
     return (
       <div className="flex justify-center items-center h-[70vh]">
         <p className="text-lg font-medium text-red-500">
-          Failed to load company profile.
+          {!companyData
+            ? "Profile not created."
+            : " Failed to load company profile."}
         </p>
       </div>
     );
@@ -118,11 +116,19 @@ export default function ViewEmployeeCompanyProfile() {
     {
       key: "id",
       label: "Action",
-      render: (_, row) => (
-        <Link href="#" className="text-green-600 hover:underline font-medium">
-          View
-        </Link>
-      ),
+      render: (_, row) => {
+        if (!row) return null;
+        const href = `/admin-dashboard/job-management/job-details/${row.id}`;
+
+        return (
+          <Link
+            href={href}
+            className="text-[#777777] hover:text-[#4b4a4a] font-medium hover:underline uppercase"
+          >
+            View
+          </Link>
+        );
+      },
     },
   ];
 

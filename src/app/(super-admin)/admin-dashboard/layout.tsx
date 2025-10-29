@@ -25,7 +25,7 @@ export default function Layout({
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="sticky top-0 z-40 flex h-18 shrink-0 items-center border-b bg-primary/95 backdrop-blur transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-16 justify-between px-4 lg:px-6 xl:px-8">
+        <header className="sticky top-0 z-40 flex h-18 shrink-0 items-center border-b bg-primary/95 backdrop-blur transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-16 justify-between px-4 lg:px-6 xl:px-8">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="md:hidden" />
             <div className="text-white">

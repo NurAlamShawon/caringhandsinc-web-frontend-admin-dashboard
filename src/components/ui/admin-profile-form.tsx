@@ -1,7 +1,6 @@
 "use client";
 
 import type React from "react";
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,22 @@ import {
   useUpdateContactMutation,
 } from "@/redux/api/userApi/useApi";
 
+export interface AdminProfileFormValues {
+  adminName: string;
+  email: string;
+  phoneNumber: string;
+  businessAddress: string;
+  city: string;
+  zipCode: string;
+  preferredContactMethod: "email" | "phone" | "sms";
+  contactEmail: string;
+  inviteEmail: string;
+  inviteRole: "admin" | "moderator" | "editor" | "viewer";
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
 interface AdminProfileFormProps {
   onUpdateSuccess?: () => void;
 }
@@ -46,7 +61,7 @@ export default function AdminProfileForm({
     setValue,
     reset,
     formState: { errors },
-  } = useForm({
+  } = useForm<AdminProfileFormValues>({
     defaultValues: {
       adminName: "",
       email: "",
@@ -68,6 +83,15 @@ export default function AdminProfileForm({
     if (userData?.data) {
       const user = userData.data;
       setUserEmail(user.email);
+
+      // Ensure preferredContactMethod is typed correctly
+      const contactMethods = ["email", "phone", "sms"] as const;
+      const preferredContactMethod = contactMethods.includes(
+        user.preferredContactMethod as (typeof contactMethods)[number]
+      )
+        ? (user.preferredContactMethod as "email" | "phone" | "sms")
+        : "email";
+
       reset({
         adminName: user.fullName || "",
         email: user.email || "",
@@ -75,7 +99,7 @@ export default function AdminProfileForm({
         businessAddress: user.companyName || "",
         city: user.city || "",
         zipCode: user.zipCode || "",
-        preferredContactMethod: user.preferredContactMethod || "email",
+        preferredContactMethod,
         contactEmail: user.email || "",
         inviteEmail: "",
         inviteRole: "admin",
@@ -84,56 +108,52 @@ export default function AdminProfileForm({
         confirmPassword: "",
       });
 
+      // Profile image preview
       if (user.profilePic) {
-        setProfileImage(user.profilePic);
+        setProfileImage(`http://206.162.244.131:6009/${user.profilePic}`);
       }
     }
   }, [userData, reset]);
 
   const watchedValues = watch();
 
- const onSubmit = async (formValues: any) => {
-  try {
-    const formData = new FormData();
-    
+  const onSubmit = async (formValues: AdminProfileFormValues) => {
+    try {
+      const formData = new FormData();
 
-    // Append profile image if selected
-    const fileInput = document.querySelector<HTMLInputElement>(
-      'input[type="file"]'
-    );
-    if (fileInput?.files?.[0]) {
-      formData.append("file", fileInput.files[0]); // binary image
-      
+      // Append profile image if selected
+      const fileInput =
+        document.querySelector<HTMLInputElement>('input[type="file"]');
+      if (fileInput?.files?.[0]) {
+        formData.append("file", fileInput.files[0]); // binary image
+      }
+
+      // Create JSON object with all other fields including passwords
+      const jsonData = {
+        fullName: formValues.adminName,
+        email: formValues.email,
+        phone: formValues.phoneNumber,
+        businessAddress: formValues.businessAddress,
+        city: formValues.city,
+        zipCode: formValues.zipCode,
+        preferredContactMethod: formValues.preferredContactMethod,
+        contactEmail: formValues.contactEmail,
+        currentPassword: formValues.currentPassword,
+        newPassword: formValues.newPassword,
+        confirmPassword: formValues.confirmPassword,
+      };
+
+      formData.append("data", JSON.stringify(jsonData));
+
+      // Send via RTK Query mutation
+      await updateContact({ body: formData }).unwrap();
+
+      onUpdateSuccess?.();
+      console.log("Form submitted:", jsonData);
+    } catch (error) {
+      console.error("[v0] Error updating profile:", error);
     }
-
-    // Create JSON object with all other fields including passwords
-    const jsonData = {
-      fullName: formValues.adminName,
-      email: formValues.email,
-      phone: formValues.phoneNumber,
-      businessAddress: formValues.businessAddress,
-      city: formValues.city,
-      zipCode: formValues.zipCode,
-      preferredContactMethod: formValues.preferredContactMethod,
-      contactEmail: formValues.contactEmail,
-      currentPassword: formValues.currentPassword,
-      newPassword: formValues.newPassword,
-      confirmPassword: formValues.confirmPassword,
-    };
-
-    // Append JSON as a string
-    formData.append("data", JSON.stringify(jsonData));
-
-    // Send via RTK Query mutation
-    await updateContact({ body: formData }).unwrap();
-
-    onUpdateSuccess?.();
-    console.log("Form submitted:", jsonData);
-  } catch (error) {
-    console.error("[v0] Error updating profile:", error);
-  }
-};
-
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,7 +187,7 @@ export default function AdminProfileForm({
                   <div className="w-20 h-20 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center">
                     {profileImage ? (
                       <img
-                        src={`http://206.162.244.131:6009/${profileImage}` || "/placeholder.svg"}
+                        src={profileImage}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
@@ -319,8 +339,10 @@ export default function AdminProfileForm({
                   Assign Role
                 </label>
                 <Select
-                  defaultValue="admin"
-                  onValueChange={(value) => setValue("inviteRole", value)}
+                  value={watch("inviteRole")} // controlled value
+                  onValueChange={(
+                    value: "admin" | "moderator" | "editor" | "viewer"
+                  ) => setValue("inviteRole", value)}
                 >
                   <SelectTrigger id="inviteRole">
                     <SelectValue placeholder="Select role" />
@@ -428,8 +450,8 @@ export default function AdminProfileForm({
                     Preferred Contact Method
                   </label>
                   <Select
-                    defaultValue="email"
-                    onValueChange={(value) =>
+                    value={watch("preferredContactMethod")} // controlled value
+                    onValueChange={(value: "email" | "phone" | "sms") =>
                       setValue("preferredContactMethod", value)
                     }
                   >
