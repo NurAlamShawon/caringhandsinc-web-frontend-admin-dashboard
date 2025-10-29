@@ -160,7 +160,7 @@ export const CandidateResumeCard: React.FC<CandidateData> = ({
               }}
               className="bg-emerald-500 hover:bg-emerald-600 text-white px-6"
             >
-              Suspend Account
+              Suspend User
             </Button>
             <Button
               onClick={() => {

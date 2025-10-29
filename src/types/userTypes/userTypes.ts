@@ -291,16 +291,12 @@ export interface Profile {
   updatedAt: string;
 }
 
-
 export interface UserData {
-  data: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    fullName: string;
-    email: string;
-    Profile: Profile; // ✅ Profile object
-  };
+  id: string;
+  phone: string;
+  fullName: string;
+  email: string;
+  Profile: Profile; // ✅ Profile object
 }
 export interface SingleProfileApiResponse {
   success: boolean;
@@ -308,5 +304,3 @@ export interface SingleProfileApiResponse {
   message: string;
   data: UserData; // ✅ data here is UserData
 }
-
-
