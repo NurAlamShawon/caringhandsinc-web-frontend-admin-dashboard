@@ -2,6 +2,7 @@ import {
   SingleUserResponseDataType,
   UserResponseDataType,
   SingleProfileApiResponse,
+  SingleCompanyResponse
 } from "@/types/userTypes/userTypes";
 import { baseApi } from "../baseApi";
 
@@ -74,11 +75,21 @@ export const userApi = baseApi.injectEndpoints({
       invalidatesTags: ["User"],
     }),
 
-    // Get profile
+    // Get job seeker profile
 
     getMyProfile: builder.query<SingleProfileApiResponse, Record<string, string>>({
       query: ({ id }) => ({
         url: `/profiles/${id}`,
+        method: "GET",
+      }),
+      providesTags: ["User"],
+    }),
+
+     // Get Employee Profile
+
+    getEmployeeProfile: builder.query<SingleCompanyResponse, Record<string, string>>({
+      query: ({ id }) => ({
+        url: `/companies/${id}`,
         method: "GET",
       }),
       providesTags: ["User"],
@@ -95,4 +106,5 @@ export const {
   useGetMeQuery,
   useUpdateContactMutation,
   useGetMyProfileQuery,
+  useGetEmployeeProfileQuery
 } = userApi;

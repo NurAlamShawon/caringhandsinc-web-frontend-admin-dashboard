@@ -118,35 +118,6 @@ export interface UserInfo {
 }
 
 // Job interface
-export interface Job {
-  id: string;
-  jobId: string;
-  title: string;
-  experience: string;
-  deadline: string;
-  formattedDeadline: string;
-  location: string;
-  workingTime: string;
-  description: string;
-  salaryType: string;
-  salaryRange: string;
-  skills: string[];
-  responsibilities: string[];
-  requirements: string[];
-  whyJoin: string[];
-  userId: string;
-  companyId: string;
-  jobType: string;
-  status: string;
-  actualStatus: string;
-  noOfApplicants: number;
-  createdAt: string;
-  updatedAt: string;
-  remainingDays: number;
-  isExpired: boolean;
-  company: CompanyInfo;
-  user: UserInfo;
-}
 
 // Company information
 export interface CompanyInfo {
@@ -234,7 +205,7 @@ export interface SingleJobById {
   data: Job;
 }
 
-//profile part
+//job seeker profile part
 
 export interface JobExperience {
   job_title: string;
@@ -303,4 +274,82 @@ export interface SingleProfileApiResponse {
   statusCode: number;
   message: string;
   data: UserData; // ✅ data here is UserData
+}
+
+//employee company data
+
+
+
+
+export interface EmployeeJob {
+  jobId: string;
+  postingDate: string;
+  salaryRange: string;
+  position: string;
+  status: string;
+  applicants: number;
+  deadline: string;
+}
+
+
+
+
+export interface EmployeeCompany {
+  id: string;
+  companyName: string;
+  industryType: string;
+  roleInCompany: string;
+  description: string;
+  logo: string;
+  country: string;
+  email: string;
+  phoneNumber: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  website: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  JobPost: EmployeeJob[]; // or define a JobPost interface if available
+}
+
+export interface EmployeeData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  password: string;
+  profilePic: string;
+  phone: string;
+  preferredContactMethod: string;
+  passwordChangedAt: string | null;
+  roleChangedAt: string | null;
+  isVerified: boolean;
+  isResetPassword: boolean;
+  canResetPassword: boolean;
+  isResentOtp: boolean;
+  role: string;
+  isSubscribed: boolean;
+  joiningDate: string | null;
+  planExpiration: string | null;
+  employeType: string | null;
+  status: string;
+  subscriptionType: string | null;
+  planId: string | null;
+  totalPayPerJobCount: number;
+  createdAt: string;
+  updatedAt: string;
+  isEmailVerified: boolean;
+  isDelete: boolean;
+  Company: EmployeeCompany;
+}
+
+export interface SingleCompanyResponse {
+  success: boolean;
+  statusCode: number;
+  message: string;
+  data: EmployeeData;
 }

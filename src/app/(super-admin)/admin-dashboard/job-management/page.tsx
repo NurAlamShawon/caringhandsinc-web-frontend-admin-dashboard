@@ -133,7 +133,7 @@ const jobsData = useMemo(() => {
           {/* 🔹 Filter Dropdown */}
           <Select
             value={filterStatus}
-            onValueChange={(val : any) =>
+             onValueChange={(val: "ALL" | "ACTIVE" | "EXPIRED") =>
               setFilterStatus(val as "ALL" | "ACTIVE" | "EXPIRED")
             }
           >

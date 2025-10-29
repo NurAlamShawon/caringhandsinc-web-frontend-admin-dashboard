@@ -25,7 +25,9 @@ import {
 
 export default function Overview() {
   const [updateRole] = useUpdateRoleMutation();
-  const [filterType, setFilterType] = useState<"ALL" | "JOB_SEEKER" | "EMPLOYEE">("ALL");
+  const [filterType, setFilterType] = useState<
+    "ALL" | "JOB_SEEKER" | "EMPLOYEE"
+  >("ALL");
   const [page, setPage] = useState(1);
   const limit = 10;
 
@@ -39,30 +41,30 @@ export default function Overview() {
   const pagination = data?.meta || { total: 0, page: 1, totalPage: 1 };
 
   // 🔹 Transform API data into table-friendly format
-const usersData: Job[] = useMemo(() => {
-  return (
-    data?.data?.map((user) => ({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      fullName: user.fullName,
-      profilePic: user.profilePic || "",
-      role: ["ADMIN", "JOB_SEEKER", "EMPLOYEE"].includes(user.role)
-        ? (user.role as "ADMIN" | "JOB_SEEKER" | "EMPLOYEE")
-        : "JOB_SEEKER",
-      isSubscribed: user.isSubscribed,
-      companyName: user.companyName || "",
-      joiningDate: user.joiningDate,
-      planExpiration: user.planExpiration,
-      subscriptionType: user.subscriptionType,
-      planId: user.planId,
-      totalPayPerJobCount: user.totalPayPerJobCount,
-      isVerified: user.isVerified,
-      createdAt: user.createdAt,
-    })) ?? []
-  );
-}, [data?.data]); // Only recompute if `data.data` changes
+  const usersData: Job[] = useMemo(() => {
+    return (
+      data?.data?.map((user) => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        profilePic: user.profilePic || "",
+        role: ["ADMIN", "JOB_SEEKER", "EMPLOYEE"].includes(user.role)
+          ? (user.role as "ADMIN" | "JOB_SEEKER" | "EMPLOYEE")
+          : "JOB_SEEKER",
+        isSubscribed: user.isSubscribed,
+        companyName: user.companyName || "",
+        joiningDate: user.joiningDate,
+        planExpiration: user.planExpiration,
+        subscriptionType: user.subscriptionType,
+        planId: user.planId,
+        totalPayPerJobCount: user.totalPayPerJobCount,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+      })) ?? []
+    );
+  }, [data?.data]); // Only recompute if `data.data` changes
 
   // 🔹 Filter users based on filterType
   const filteredUsersData = useMemo(() => {
@@ -70,23 +72,26 @@ const usersData: Job[] = useMemo(() => {
     return usersData.filter((user) => user.role === filterType);
   }, [filterType, usersData]);
 
-type UserRole = "ADMIN" | "JOB_SEEKER" | "EMPLOYEE";
+  type UserRole = "ADMIN" | "JOB_SEEKER" | "EMPLOYEE";
 
-const handleRoleChange = async (email: string, newRoleValue: UserRole) => {
-  // Update local state safely
-  usersData.forEach((user) => {
-    if (user.email === email) {
-      user.role = newRoleValue; // No 'any' needed
+  const handleRoleChange = async (email: string, newRoleValue: UserRole) => {
+    // Update local state safely
+    usersData.forEach((user) => {
+      if (user.email === email) {
+        user.role = newRoleValue; // No 'any' needed
+      }
+    });
+
+    try {
+      await updateRole({
+        email,
+        body: { role: newRoleValue.toUpperCase() },
+      }).unwrap();
+      console.log("Role updated successfully");
+    } catch (error) {
+      console.error("Error updating role:", error);
     }
-  });
-
-  try {
-    await updateRole({ email, body: { role: newRoleValue.toUpperCase() } }).unwrap();
-    console.log("Role updated successfully");
-  } catch (error) {
-    console.error("Error updating role:", error);
-  }
-};
+  };
 
   // Table columns
   const jobColumns: ColumnDef<Job>[] = [
@@ -103,14 +108,20 @@ const handleRoleChange = async (email: string, newRoleValue: UserRole) => {
         return (
           <Select
             value={row.role}
-            onValueChange={(val) => handleRoleChange(row.email, val as UserRole)}
+            onValueChange={(val) =>
+              handleRoleChange(row.email, val as UserRole)
+            }
           >
             <SelectTrigger className="w-[140px] bg-[#28C76F1A] text-[#10B981] border border-[#10B981] rounded-2xl text-sm hover:bg-gray-100 focus:ring-emerald-500 uppercase">
               <SelectValue>{row.role}</SelectValue>
             </SelectTrigger>
             <SelectContent className="backdrop-blur-md bg-white/80 shadow-lg rounded-lg">
               {roleOptions.map((role) => (
-                <SelectItem key={role + row.id} value={role} className="uppercase">
+                <SelectItem
+                  key={role + row.id}
+                  value={role}
+                  className="uppercase"
+                >
                   {role}
                 </SelectItem>
               ))}
@@ -133,7 +144,8 @@ const handleRoleChange = async (email: string, newRoleValue: UserRole) => {
             href={href}
             className="text-[#777777] hover:text-[#4b4a4a] font-medium hover:underline uppercase"
           >
-            View Profile
+            {" "}
+            {row.role !== "ADMIN" && "View Profile"}
           </Link>
         );
       },
@@ -158,9 +170,15 @@ const handleRoleChange = async (email: string, newRoleValue: UserRole) => {
               </SelectIcon>
             </SelectTrigger>
             <SelectContent className="backdrop-blur-md bg-black/70 text-white rounded-lg shadow-lg">
-              <SelectItem value="ALL" className="uppercase">ALL</SelectItem>
-              <SelectItem value="JOB_SEEKER" className="uppercase">JOB_SEEKER</SelectItem>
-              <SelectItem value="EMPLOYEE" className="uppercase">EMPLOYEE</SelectItem>
+              <SelectItem value="ALL" className="uppercase">
+                ALL
+              </SelectItem>
+              <SelectItem value="JOB_SEEKER" className="uppercase">
+                JOB_SEEKER
+              </SelectItem>
+              <SelectItem value="EMPLOYEE" className="uppercase">
+                EMPLOYEE
+              </SelectItem>
             </SelectContent>
           </Select>
         </CardHeader>
