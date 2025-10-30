@@ -79,7 +79,7 @@ export default function Overview() {
 
   // 🔹 Transform data for the table
   const usersData: Job[] =
-    data?.data?.map((user: any) => ({
+    data?.data?.map((user) => ({
       id: user.id,
       email: user.email,
       firstName: user.firstName,
@@ -102,7 +102,7 @@ export default function Overview() {
     })) ?? [];
   // state data
 
-  const { data: state_data,isFetching, isError } = useGetStatisticQuery({});
+  const { data: state_data,isFetching, isError } = useGetStatisticQuery();
 
 
 if (isLoading || isFetching) return <div className="w-50 mx-auto"> <Spinner /></div>;

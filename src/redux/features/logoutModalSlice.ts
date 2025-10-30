@@ -4,9 +4,7 @@ interface LogoutModalState {
   isOpen: boolean;
 }
 
-const initialState: LogoutModalState = {
-  isOpen: false,
-};
+const initialState: LogoutModalState = { isOpen: false };
 
 export const logoutModalSlice = createSlice({
   name: "logoutModal",

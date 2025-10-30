@@ -1,7 +1,6 @@
-"use client";
 
-import LogIn from "@/app/(auth)/auth/login/page";
 
+import LogIn from "@/components/login/page";
 const page = () => {
   return (
     <>

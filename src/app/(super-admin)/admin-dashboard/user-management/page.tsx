@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Spinner } from "@/components/ui/spinner";
 import { ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,17 +18,21 @@ import {
 } from "@/components/ui/select";
 import { SelectIcon } from "@radix-ui/react-select";
 import {
+  useGetMeQuery,
   useGetUsersQuery,
   useUpdateRoleMutation,
 } from "@/redux/api/userApi/useApi";
 
+import { tableColumns, TableSkeleton } from "@/components/table-skeleton/tableSkeleton-user";
+
 export default function Overview() {
   const [updateRole] = useUpdateRoleMutation();
-  const [filterType, setFilterType] = useState<
-    "ALL" | "JOB_SEEKER" | "EMPLOYEE"
-  >("ALL");
+  const [filterType, setFilterType] = useState<"ALL" | "JOB_SEEKER" | "EMPLOYEE">("ALL");
   const [page, setPage] = useState(1);
   const limit = 10;
+
+  // ✅ Fetch logged-in user info
+  const { data: userData, isLoading: isLoadingUser } = useGetMeQuery();
 
   // 🔹 Fetch users using RTK Query with pagination
   const { isLoading, data } = useGetUsersQuery({
@@ -37,10 +40,8 @@ export default function Overview() {
     limit: String(limit),
   });
 
-  // 🔹 Extract pagination info from response
   const pagination = data?.meta || { total: 0, page: 1, totalPage: 1 };
 
-  // 🔹 Transform API data into table-friendly format
   const usersData: Job[] = useMemo(() => {
     return (
       data?.data?.map((user) => ({
@@ -64,9 +65,8 @@ export default function Overview() {
         createdAt: user.createdAt,
       })) ?? []
     );
-  }, [data?.data]); // Only recompute if `data.data` changes
+  }, [data?.data]);
 
-  // 🔹 Filter users based on filterType
   const filteredUsersData = useMemo(() => {
     if (filterType === "ALL") return usersData;
     return usersData.filter((user) => user.role === filterType);
@@ -75,10 +75,9 @@ export default function Overview() {
   type UserRole = "ADMIN" | "JOB_SEEKER" | "EMPLOYEE";
 
   const handleRoleChange = async (email: string, newRoleValue: UserRole) => {
-    // Update local state safely
     usersData.forEach((user) => {
       if (user.email === email) {
-        user.role = newRoleValue; // No 'any' needed
+        user.role = newRoleValue;
       }
     });
 
@@ -93,7 +92,7 @@ export default function Overview() {
     }
   };
 
-  // Table columns
+  // ✅ Table columns
   const jobColumns: ColumnDef<Job>[] = [
     { key: "joiningDate", label: "Joining Date & Time", sortable: false },
     { key: "fullName", label: "User Name", sortable: true },
@@ -104,28 +103,35 @@ export default function Overview() {
       label: "Role Change",
       render: (_, row) => {
         if (!row) return null;
+
         const roleOptions = ["ADMIN", "JOB_SEEKER", "EMPLOYEE"];
+        const isSelf = userData?.data?.email === row.email; // ✅ Compare email
+
         return (
           <Select
             value={row.role}
-            onValueChange={(val) =>
-              handleRoleChange(row.email, val as UserRole)
-            }
+            onValueChange={(val) => handleRoleChange(row.email, val as UserRole)}
+            disabled={isSelf} // ✅ Disable if it's the logged-in user's row
           >
-            <SelectTrigger className="w-[140px] bg-[#28C76F1A] text-[#10B981] border border-[#10B981] rounded-2xl text-sm hover:bg-gray-100 focus:ring-emerald-500 uppercase">
+            <SelectTrigger
+              className={`w-[140px] ${
+                isSelf
+                  ? "bg-gray-300 text-gray-600 cursor-not-allowed border-gray-400"
+                  : "bg-[#28C76F1A] text-[#10B981] border border-[#10B981]"
+              } rounded-2xl text-sm hover:bg-gray-100 focus:ring-emerald-500 uppercase`}
+            >
               <SelectValue>{row.role}</SelectValue>
             </SelectTrigger>
-            <SelectContent className="backdrop-blur-md bg-white/80 shadow-lg rounded-lg">
-              {roleOptions.map((role) => (
-                <SelectItem
-                  key={role + row.id}
-                  value={role}
-                  className="uppercase"
-                >
-                  {role}
-                </SelectItem>
-              ))}
-            </SelectContent>
+
+            {!isSelf && ( // ✅ Only show dropdown options if not self
+              <SelectContent className="backdrop-blur-md bg-white/80 shadow-lg rounded-lg">
+                {roleOptions.map((role) => (
+                  <SelectItem key={role + row.id} value={role} className="uppercase">
+                    {role}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            )}
           </Select>
         );
       },
@@ -144,7 +150,6 @@ export default function Overview() {
             href={href}
             className="text-[#777777] hover:text-[#4b4a4a] font-medium hover:underline uppercase"
           >
-            {" "}
             {row.role !== "ADMIN" && "View Profile"}
           </Link>
         );
@@ -185,9 +190,7 @@ export default function Overview() {
 
         <CardContent>
           {isLoading ? (
-            <div className="mx-auto w-40 my-10">
-              <Spinner />
-            </div>
+            <TableSkeleton columns={tableColumns} />
           ) : (
             <DataTable
               data={filteredUsersData}

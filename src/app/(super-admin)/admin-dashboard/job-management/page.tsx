@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
@@ -20,6 +20,7 @@ import {
 import { SelectIcon } from "@radix-ui/react-select";
 import { useGetJobsQuery } from "@/redux/api/jobApi/jobApi";
 import { JobsApiResponse } from "@/types/userTypes/userTypes";
+import { TableSkeleton ,tableColumns } from "@/components/table-skeleton/tableSkeleton-job";
 // 🔹 Import your RTK Query API hook
 // ✅ Adjust path to your job API file
 
@@ -160,8 +161,8 @@ const jobsData = useMemo(() => {
         {/* 🔹 Table Section */}
         <CardContent>
           {isLoading || isFetching ? (
-            <div className="mx-auto w-40 my-20">
-              <Spinner />
+            <div >
+              <TableSkeleton columns={tableColumns} />
             </div>
           ) : (
             <DataTable

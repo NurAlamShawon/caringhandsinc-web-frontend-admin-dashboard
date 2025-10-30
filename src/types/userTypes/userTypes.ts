@@ -17,7 +17,8 @@ export interface UserTypes {
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;
-
+  businessEmail: string;
+  address: string;
   // ✅ new optional fields
   phone?: string;
   city?: string;
@@ -278,9 +279,6 @@ export interface SingleProfileApiResponse {
 
 //employee company data
 
-
-
-
 export interface EmployeeJob {
   jobId: string;
   postingDate: string;
@@ -290,9 +288,6 @@ export interface EmployeeJob {
   applicants: number;
   deadline: string;
 }
-
-
-
 
 export interface EmployeeCompany {
   id: string;

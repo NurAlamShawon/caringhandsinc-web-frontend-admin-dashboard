@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/custom-data-table-admin";
 import type { EmployeeData, EmployeeJob } from "@/types/userTypes/userTypes";
 import ConfirmToast from "@/components/toast-error-loading/ConfirmToast";
-import { useDeleterUserMutation, useGetEmployeeProfileQuery, useSuspendUserMutation } from "@/redux/api/userApi/useApi";
+import { useDeleteUserMutation, useGetEmployeeProfileQuery, useSuspendUserMutation } from "@/redux/api/userApi/useApi";
 
 type JobRow = {
   id: string;
@@ -37,7 +37,7 @@ export default function ViewEmployeeCompanyProfile() {
   const [messtype, setMesstype] = useState<"Sus" | "Del">("Sus");
 
  const [suspendUser] = useSuspendUserMutation();
-  const [deleterUser] = useDeleterUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
 
   const handleDelete = (): void => {
     if (!id) return;
@@ -46,7 +46,7 @@ export default function ViewEmployeeCompanyProfile() {
       suspendUser({ id });
       
     } else if (messtype === "Del") {
-      deleterUser({ id });
+      deleteUser({ id });
     }
     setShowConfirm(false);
   };
@@ -79,9 +79,8 @@ export default function ViewEmployeeCompanyProfile() {
     return (
       <div className="flex justify-center items-center h-[70vh]">
         <p className="text-lg font-medium text-red-500">
-          {!companyData
-            ? "Profile not created."
-            : " Failed to load company profile."}
+         
+         Failed to load company profile.
         </p>
       </div>
     );

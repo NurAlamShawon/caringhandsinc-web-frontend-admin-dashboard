@@ -39,10 +39,10 @@ export const userApi = baseApi.injectEndpoints({
       invalidatesTags: ["User"],
     }),
     // delete user
-    deleterUser: builder.mutation({
+    deleteUser: builder.mutation({
       query: ({ id, body }) => ({
-        url: `/users/remove/${id}`, // dynamic id
-        method: "DELETE",
+        url: `/users/delete/${id}`, // dynamic id
+        method: "PATCH",
         body,
       }),
       invalidatesTags: ["User"],
@@ -65,7 +65,7 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ["User"],
     }),
     // update contact info
-    updateContact: builder.mutation({
+    updateAdminInfo: builder.mutation({
       query: ({ body }: { body: FormData }) => ({
         url: "/users/update",
         method: "PATCH",
@@ -89,11 +89,34 @@ export const userApi = baseApi.injectEndpoints({
 
     getEmployeeProfile: builder.query<SingleCompanyResponse, Record<string, string>>({
       query: ({ id }) => ({
-        url: `/companies/${id}`,
+        url: `/profiles/${id}`,
         method: "GET",
       }),
       providesTags: ["User"],
     }),
+
+ // update contact info
+    updateContactInfo: builder.mutation({
+      query: ({ body }) => ({
+        url: "/profiles/siteinfo",
+        method: "POST",
+        body,
+        // Do NOT set headers here; FormData will set them automatically
+      }),
+      invalidatesTags: ["User"],
+    }),
+
+
+  //  update admin contact info
+
+
+
+
+
+
+
+
+
   }),
 });
 
@@ -102,9 +125,11 @@ export const {
   useUpdateRoleMutation,
   useGetUsersbyIdQuery,
   useSuspendUserMutation,
-  useDeleterUserMutation,
+  useDeleteUserMutation,
   useGetMeQuery,
-  useUpdateContactMutation,
   useGetMyProfileQuery,
-  useGetEmployeeProfileQuery
+  useGetEmployeeProfileQuery,
+  useUpdateAdminInfoMutation,
+  useUpdateContactInfoMutation
+  
 } = userApi;

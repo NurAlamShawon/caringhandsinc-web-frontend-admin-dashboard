@@ -8,8 +8,7 @@ import Image from "next/image";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import ConfirmToast from "@/components/toast-error-loading/ConfirmToast";
-import { useDeleteJobMutation, useSuspendJobMutation } from "@/redux/api/jobApi/jobApi";
-import { useDeleterUserMutation, useSuspendUserMutation } from "@/redux/api/userApi/useApi";
+import { useDeleteUserMutation, useSuspendUserMutation } from "@/redux/api/userApi/useApi";
 
 export interface Education {
   degree: string;
@@ -79,7 +78,7 @@ export const CandidateResumeCard: React.FC<CandidateData> = ({
   const [mess, setmess] = useState<string>("");
   const [messtype, setmesstype] = useState<string>("");
   const [suspendUser] = useSuspendUserMutation();
-  const [deleterUser] = useDeleterUserMutation();
+  const [deleteUser] = useDeleteUserMutation();
   
     const handleDelete = (): void => {
       if (!id) return;
@@ -88,7 +87,7 @@ export const CandidateResumeCard: React.FC<CandidateData> = ({
         suspendUser({ id });
         
       } else if (messtype === "Del") {
-        deleterUser({ id });
+        deleteUser({ id });
       }
       setShowConfirm(false);
     };

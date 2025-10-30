@@ -5,7 +5,7 @@ export const userApi = baseApi.injectEndpoints({
   overrideExisting: true, // ✅ add this
   endpoints: (builder) => ({
     // get all statistics
-    getStatistic: builder.query<DashboardResponse, {}>({
+    getStatistic: builder.query<DashboardResponse, void>({
       query: () => ({
         url: `/statistics`,
         method: "GET",
@@ -13,7 +13,7 @@ export const userApi = baseApi.injectEndpoints({
       providesTags: ["Statistic"],
     }),
      // get all statistics
-    getChartStatistic: builder.query<DashboardResponse, {}>({
+    getChartStatistic: builder.query<DashboardResponse, void>({
       query: () => ({
         url: `/statistics/login-stats`,
         method: "GET",

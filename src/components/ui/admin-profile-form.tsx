@@ -21,8 +21,10 @@ import {
 } from "@/components/ui/select";
 import {
   useGetMeQuery,
-  useUpdateContactMutation,
+  useUpdateAdminInfoMutation,
+  useUpdateContactInfoMutation,
 } from "@/redux/api/userApi/useApi";
+import { useChangePassMutation } from "@/redux/api/auth/authApi";
 
 export interface AdminProfileFormValues {
   adminName: string;
@@ -40,145 +42,175 @@ export interface AdminProfileFormValues {
   confirmPassword: string;
 }
 
-interface AdminProfileFormProps {
-  onUpdateSuccess?: () => void;
-}
-
-export default function AdminProfileForm({
-  onUpdateSuccess,
-}: AdminProfileFormProps) {
+export default function AdminProfileForm() {
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState("");
 
   const { data: userData, isLoading: isLoadingUser } = useGetMeQuery();
-  const [updateContact, { isLoading: isUpdatingContact }] =
-    useUpdateContactMutation();
+  const [updateAdminInfo, { isLoading: isUpdatingAdminInfo }] =
+    useUpdateAdminInfoMutation();
+  const [updateContactInfo, { isLoading: isUpdatingContactInfo }] =
+    useUpdateContactInfoMutation();
+  const [changePass, { isLoading: isUpdatingPass }] = useChangePassMutation();
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm<AdminProfileFormValues>({
-    defaultValues: {
-      adminName: "",
-      email: "",
-      phoneNumber: "",
-      businessAddress: "",
-      city: "",
-      zipCode: "",
-      preferredContactMethod: "email",
-      contactEmail: "",
-      inviteEmail: "",
-      inviteRole: "admin",
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    },
-  });
+  console.log(userData);
 
-  useEffect(() => {
-    if (userData?.data) {
-      const user = userData.data;
-      setUserEmail(user.email);
-
-      // Ensure preferredContactMethod is typed correctly
-      const contactMethods = ["email", "phone", "sms"] as const;
-      const preferredContactMethod = contactMethods.includes(
-        user.preferredContactMethod as (typeof contactMethods)[number]
-      )
-        ? (user.preferredContactMethod as "email" | "phone" | "sms")
-        : "email";
-
-      reset({
-        adminName: user.fullName || "",
-        email: user.email || "",
-        phoneNumber: user.phone || "",
-        businessAddress: user.companyName || "",
-        city: user.city || "",
-        zipCode: user.zipCode || "",
-        preferredContactMethod,
-        contactEmail: user.email || "",
+  const { register, handleSubmit, setValue, reset, watch, formState } =
+    useForm<AdminProfileFormValues>({
+      defaultValues: {
+        adminName: "",
+        email: "",
+        phoneNumber: "",
+        businessAddress: "",
+        city: "",
+        zipCode: "",
+        preferredContactMethod: "email",
+        contactEmail: "",
         inviteEmail: "",
         inviteRole: "admin",
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
+      },
+    });
+
+  const { errors } = formState;
+
+  useEffect(() => {
+    if (userData?.data) {
+      const user = userData.data;
+      reset({
+        adminName: user.fullName || "",
+        email: user.email || "",
+        phoneNumber: user.phone || "",
+        businessAddress: user.address || "N/A",
+        city: user.city || "N/A",
+        zipCode: user.zipCode || "N/A",
+        preferredContactMethod:
+          user.preferredContactMethod === "phone"
+            ? "phone"
+            : user.preferredContactMethod === "sms"
+            ? "sms"
+            : "email",
+        contactEmail: user.businessEmail || "",
       });
 
-      // Profile image preview
       if (user.profilePic) {
         setProfileImage(`http://206.162.244.131:6009/${user.profilePic}`);
       }
     }
   }, [userData, reset]);
 
-  const watchedValues = watch();
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
-  const onSubmit = async (formValues: AdminProfileFormValues) => {
-    try {
-      const formData = new FormData();
-
-      // Append profile image if selected
-      const fileInput =
-        document.querySelector<HTMLInputElement>('input[type="file"]');
-      if (fileInput?.files?.[0]) {
-        formData.append("file", fileInput.files[0]); // binary image
-      }
-
-      // Create JSON object with all other fields including passwords
-      const jsonData = {
-        fullName: formValues.adminName,
-        email: formValues.email,
-        phone: formValues.phoneNumber,
-        businessAddress: formValues.businessAddress,
-        city: formValues.city,
-        zipCode: formValues.zipCode,
-        preferredContactMethod: formValues.preferredContactMethod,
-        contactEmail: formValues.contactEmail,
-        currentPassword: formValues.currentPassword,
-        newPassword: formValues.newPassword,
-        confirmPassword: formValues.confirmPassword,
-      };
-
-      formData.append("data", JSON.stringify(jsonData));
-
-      // Send via RTK Query mutation
-      await updateContact({ body: formData }).unwrap();
-
-      onUpdateSuccess?.();
-      console.log("Form submitted:", jsonData);
-    } catch (error) {
-      console.error("[v0] Error updating profile:", error);
-    }
+  // --- Handlers with interactive success messages ---
+  const showSuccess = (message: string) => {
+    setSuccessMessage(message);
+    setTimeout(() => setSuccessMessage(""), 3000);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
+      reader.onloadend = () => setProfileImage(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
 
+  // --- Submit handlers for each section ---
+  const handleAdminInfoSubmit = async (formValues: AdminProfileFormValues) => {
+    try {
+      const formData = new FormData();
+      const fileInput =
+        document.querySelector<HTMLInputElement>('input[type="file"]');
+      if (fileInput?.files?.[0]) {
+        formData.append("file", fileInput.files[0]);
+      }
+
+      formData.append(
+        "data",
+        JSON.stringify({
+          fullName: formValues.adminName,
+          email: formValues.email,
+          phone: formValues.phoneNumber,
+        })
+      );
+
+      await updateAdminInfo({ body: formData }).unwrap();
+      showSuccess("Profile updated successfully!");
+      console.log("Admin info updated successfully");
+    } catch (err) {
+      console.error("Error updating admin info:", err);
+    }
+  };
+
+  const handleInviteSubmit = async (formValues: AdminProfileFormValues) => {
+    console.log(
+      "Invite sent to:",
+      formValues.inviteEmail,
+      formValues.inviteRole
+    );
+  };
+
+  const handleContactSubmit = async (formValues: AdminProfileFormValues) => {
+    try {
+      const rawData = {
+        businessAddress: formValues.businessAddress,
+        city: formValues.city,
+        zipCode: formValues.zipCode,
+        preferredContactMethod: formValues.preferredContactMethod,
+        businessEmail: formValues.contactEmail,
+      };
+
+      // Send raw JSON instead of FormData
+      await updateContactInfo({ body: rawData }).unwrap();
+
+      console.log("Contact info updated successfully");
+      showSuccess("Contact info updated successfully!");
+    } catch (err) {
+      console.error("Error updating contact info:", err);
+    }
+  };
+
+  const handlePasswordSubmit = async (formValues: AdminProfileFormValues) => {
+    try {
+      const rawData = JSON.stringify({
+        currentPassword: formValues.currentPassword,
+        newPassword: formValues.newPassword,
+        confirmPassword: formValues.confirmPassword,
+      });
+
+      // send the stringified JSON directly
+      await changePass(rawData).unwrap();
+
+      console.log("Password changed successfully");
+      showSuccess("Password changed successfully!");
+    } catch (err) {
+      console.error("Error changing password:", err);
+    }
+  };
+
+  // --- UI ---
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column: Admin Info + Invite Admin */}
-        <div className="space-y-6">
-          {/* Admin Information Section */}
+    <div className="flex flex-col lg:flex-row lg:space-x-6 space-y-4 lg:space-y-0">
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 p-4 bg-green-500 text-white rounded shadow-lg animate-fade-in">
+          {successMessage}
+        </div>
+      )}
+      {/* Admin Info */}
+
+      <div className="flex flex-col space-y-4 flex-1">
+        <form
+          onSubmit={handleSubmit(handleAdminInfoSubmit)}
+          className="space-y-6"
+        >
           <Card>
             <CardHeader>
               <CardTitle>Admin Information</CardTitle>
               <CardDescription>Update your profile details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Profile Picture */}
               <div className="space-y-3">
                 <label className="block text-sm font-medium text-gray-700">
                   Profile Picture
@@ -214,364 +246,164 @@ export default function AdminProfileForm({
                 </div>
               </div>
 
-              {/* Admin Name */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="adminName"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Admin Name
-                </label>
-                <Input
-                  id="adminName"
-                  placeholder="Enter admin name"
-                  {...register("adminName", {
-                    required: "Admin name is required",
-                  })}
-                  className="w-full"
-                />
-                {errors.adminName && (
-                  <p className="text-sm text-red-600">
-                    {errors.adminName.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Email Address */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Email Address
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  {...register("email", {
-                    required: "Email is required",
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
-                    },
-                  })}
-                  className="w-full"
-                />
-                {errors.email && (
-                  <p className="text-sm text-red-600">{errors.email.message}</p>
-                )}
-              </div>
-
-              {/* Phone Number */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="phoneNumber"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Phone Number
-                </label>
-                <Input
-                  id="phoneNumber"
-                  placeholder="+1 (555) 123-4567"
-                  {...register("phoneNumber", {
-                    required: "Phone number is required",
-                  })}
-                  className="w-full"
-                />
-                {errors.phoneNumber && (
-                  <p className="text-sm text-red-600">
-                    {errors.phoneNumber.message}
-                  </p>
-                )}
-              </div>
+              <Input
+                placeholder="Admin Name"
+                {...register("adminName", {
+                  required: "Admin name is required",
+                })}
+              />
+              <Input
+                type="email"
+                placeholder="Email Address"
+                disabled={true}
+                {...register("email", { required: "Email is required" })}
+              />
+              <Input
+                placeholder="Phone Number"
+                {...register("phoneNumber", { required: "Phone is required" })}
+              />
 
               <Button
                 type="submit"
-                disabled={isUpdatingContact || isLoadingUser}
+                disabled={isUpdatingAdminInfo}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
-                {isUpdatingContact ? "Saving..." : "Save Changes"}
+                {isUpdatingAdminInfo ? "Saving..." : "Save Changes"}
               </Button>
             </CardContent>
           </Card>
+        </form>
 
-          {/* Invite Admin Section */}
-          <Card>
+        {/* Invite Admin */}
+        <form onSubmit={handleSubmit(handleInviteSubmit)} className="space-y-6">
+          {/* <Card>
             <CardHeader>
               <CardTitle>Invite Admin</CardTitle>
               <CardDescription>Invite a new admin to your team</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Invite Email */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="inviteEmail"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Enter Email
-                </label>
-                <Input
-                  id="inviteEmail"
-                  type="email"
-                  placeholder="admin@example.com"
-                  {...register("inviteEmail", {
-                    pattern: {
-                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                      message: "Invalid email address",
-                    },
-                  })}
-                  className="w-full"
-                />
-                {errors.inviteEmail && (
-                  <p className="text-sm text-red-600">
-                    {errors.inviteEmail.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Assign Role */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="inviteRole"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Assign Role
-                </label>
-                <Select
-                  value={watch("inviteRole")} // controlled value
-                  onValueChange={(
-                    value: "admin" | "moderator" | "editor" | "viewer"
-                  ) => setValue("inviteRole", value)}
-                >
-                  <SelectTrigger id="inviteRole">
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="moderator">Moderator</SelectItem>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
+              <Input
+                type="email"
+                placeholder="admin@example.com"
+                {...register("inviteEmail")}
+              />
+              <Select
+                value={watch("inviteRole")}
+                onValueChange={(
+                  value: "admin" | "moderator" | "editor" | "viewer"
+                ) => setValue("inviteRole", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="moderator">Moderator</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
               <Button
                 type="submit"
-                disabled={isUpdatingContact}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
-                {isUpdatingContact ? "Inviting..." : "Invite Now"}
+                Invite Now
               </Button>
             </CardContent>
-          </Card>
-        </div>
+          </Card> */}
+        </form>
+      </div>
 
-        {/* Right Column: Contact Info + Change Password */}
-        <div className="space-y-6">
-          {/* Contact Information Section */}
+      <div className="flex flex-col space-y-4 flex-1">
+        {/* Contact Info */}
+        <form
+          onSubmit={handleSubmit(handleContactSubmit)}
+          className="space-y-6"
+        >
           <Card>
             <CardHeader>
               <CardTitle>Contact Information</CardTitle>
               <CardDescription>Manage your contact details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Business Address */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="businessAddress"
-                  className="block text-sm font-medium text-gray-700"
+              <Input
+                placeholder="Business Address"
+                {...register("businessAddress")}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <Input placeholder="City" {...register("city")} />
+                <Input placeholder="Zip Code" {...register("zipCode")} />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Select
+                  value={watch("preferredContactMethod")}
+                  onValueChange={(
+                    value: "admin" | "moderator" | "editor" | "viewer"
+                  ) => setValue("inviteRole", value)}
                 >
-                  Business Address
-                </label>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Contact Method" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="phone">Phone</SelectItem>
+                    <SelectItem value="sms">SMS</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
-                  id="businessAddress"
-                  placeholder="123 Business St, Suite 100, New York, NY 10001"
-                  {...register("businessAddress", {
-                    required: "Business address is required",
-                  })}
-                  className="w-full"
+                  type="email"
+                  placeholder="Contact Email"
+                  {...register("contactEmail")}
                 />
-                {errors.businessAddress && (
-                  <p className="text-sm text-red-600">
-                    {errors.businessAddress.message}
-                  </p>
-                )}
               </div>
-
-              {/* City and Zip Code */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="city"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    City
-                  </label>
-                  <Input
-                    id="city"
-                    placeholder="New York"
-                    {...register("city", { required: "City is required" })}
-                  />
-                  {errors.city && (
-                    <p className="text-sm text-red-600">
-                      {errors.city.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <label
-                    htmlFor="zipCode"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Zip Code
-                  </label>
-                  <Input
-                    id="zipCode"
-                    placeholder="10001"
-                    {...register("zipCode", {
-                      required: "Zip code is required",
-                    })}
-                  />
-                  {errors.zipCode && (
-                    <p className="text-sm text-red-600">
-                      {errors.zipCode.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="preferredContactMethod"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Preferred Contact Method
-                  </label>
-                  <Select
-                    value={watch("preferredContactMethod")} // controlled value
-                    onValueChange={(value: "email" | "phone" | "sms") =>
-                      setValue("preferredContactMethod", value)
-                    }
-                  >
-                    <SelectTrigger id="preferredContactMethod">
-                      <SelectValue placeholder="Select contact method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">Email</SelectItem>
-                      <SelectItem value="phone">Phone</SelectItem>
-                      <SelectItem value="sms">SMS</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label
-                    htmlFor="contactEmail"
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    Email Address
-                  </label>
-                  <Input
-                    id="contactEmail"
-                    type="email"
-                    placeholder="john@example.com"
-                    {...register("contactEmail", {
-                      required: "Contact email is required",
-                      pattern: {
-                        value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                        message: "Invalid email address",
-                      },
-                    })}
-                    className="w-full"
-                  />
-                  {errors.contactEmail && (
-                    <p className="text-sm text-red-600">
-                      {errors.contactEmail.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-
               <Button
                 type="submit"
-                disabled={isUpdatingContact || isLoadingUser}
+                disabled={isUpdatingContactInfo}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
-                {isUpdatingContact ? "Saving..." : "Save Changes"}
+                {isUpdatingContactInfo ? "Saving..." : "Save Changes"}
               </Button>
             </CardContent>
           </Card>
+        </form>
 
-          {/* Change Password Section */}
+        {/* Change Password */}
+        <form
+          onSubmit={handleSubmit(handlePasswordSubmit)}
+          className="space-y-6"
+        >
           <Card>
             <CardHeader>
               <CardTitle>Change Password</CardTitle>
-              <CardDescription>
-                Update your password to keep your account secure
-              </CardDescription>
+              <CardDescription>Update your password securely</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Current Password */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="currentPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Current Password
-                </label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  placeholder="Enter current password"
-                  {...register("currentPassword")}
-                />
-              </div>
-
-              {/* New Password */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="newPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  New Password
-                </label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  placeholder="Enter new password"
-                  {...register("newPassword")}
-                />
-              </div>
-
-              {/* Confirm Password */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Confirm Password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="Confirm new password"
-                  {...register("confirmPassword")}
-                />
-              </div>
-
+              <Input
+                type="password"
+                placeholder="Current Password"
+                {...register("currentPassword")}
+              />
+              <Input
+                type="password"
+                placeholder="New Password"
+                {...register("newPassword")}
+              />
+              <Input
+                type="password"
+                placeholder="Confirm Password"
+                {...register("confirmPassword")}
+              />
               <Button
                 type="submit"
-                disabled={isUpdatingContact}
+                disabled={isUpdatingPass}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
-                {isUpdatingContact ? "Updating..." : "Change Password"}
+                {isUpdatingPass ? "Updating..." : "Change Password"}
               </Button>
             </CardContent>
           </Card>
-        </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
 }
